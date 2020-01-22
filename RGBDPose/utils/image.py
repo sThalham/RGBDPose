@@ -172,16 +172,7 @@ def apply_transform(matrix, image, params):
     blurK = np.random.choice([3, 5, 7], 1).astype(int)
     blurS = random.uniform(0.0, 1.5)
 
-    #image1 = cv2.resize(image1, None, fx=1 / 2, fy=1 / 2)
-    #res = (((image1 / 1000.0) * 1.41421356) ** 2)
     image1 = cv2.GaussianBlur(image1, (blurK, blurK), blurS, blurS)
-    # quantify to depth resolution and apply gaussian
-    #dNonVar = np.divide(image1, res, out=np.zeros_like(image1), where=res != 0)
-    #dNonVar = np.round(dNonVar)
-    #dNonVar = np.multiply(dNonVar, res)
-    #noise = np.multiply(dNonVar, random.uniform(0.002, 0.004))  # empirically determined
-    #image1 = np.random.normal(loc=dNonVar, scale=noise, size=dNonVar.shape)
-    #image1 = cv2.resize(image1, (image[1].shape[1], image[1].shape[0]))
 
     # fast perlin noise
     seed = np.random.randint(2 ** 31)

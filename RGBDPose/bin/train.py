@@ -24,6 +24,7 @@ import warnings
 import keras
 import keras.preprocessing.image
 import tensorflow as tf
+import numpy as np
 
 # Allow relative imports when being executed as script.
 if __name__ == "__main__" and __package__ is None:
@@ -374,16 +375,23 @@ def main(args=None):
         use_multiprocessing = False
 
     # start training
-    training_model.fit_generator(
-        generator=train_generator,
-        steps_per_epoch=train_iterations,
-        epochs=args.epochs,
-        verbose=1,
-        callbacks=callbacks,
-        workers=args.workers,
-        use_multiprocessing=use_multiprocessing,
-        max_queue_size=args.max_queue_size
-    )
+    #training_model.fit_generator(
+    #    generator=train_generator,
+    #    steps_per_epoch=train_iterations,
+    #    epochs=args.epochs,
+    #    verbose=1,
+    #    callbacks=callbacks,
+    #    workers=args.workers,
+    #    use_multiprocessing=use_multiprocessing,
+    #    max_queue_size=args.max_queue_size
+    #)
+
+    for e in range(args.epochs):
+        for i in range(train_iterations):
+            images, targets = train_generator[i]
+            loss_pose = training_model.train_on_batch(images, targets)
+            print(loss_pose)
+            print("")
 
 
 if __name__ == '__main__':
