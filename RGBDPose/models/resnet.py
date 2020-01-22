@@ -63,14 +63,10 @@ def resnet_retinanet(num_classes, inputs=None, modifier=None, **kwargs):
             inputs_1 = keras.layers.Input(shape=(3, None, None))
         else:
             #inputs = keras.layers.Input(shape=(None, None, 3))
-            inputs_0 = keras.layers.Input(shape=(480, 640, 3))
-            inputs_1 = keras.layers.Input(shape=(480, 640, 3))
-            #inputs_0 = keras.layers.Input(shape=(None, None, 3))
-            #inputs_1 = keras.layers.Input(shape=(None, None, 3))
-        #inputs = keras.layers.Concatenate()([inputs_0, inputs_1])
-
-    #resnet_rgb = keras_resnet.models.ResNet34(inputs_0, include_top=False, freeze_bn=True)
-    #resnet_dep = keras_resnet.models.ResNet34(inputs_1, include_top=False, freeze_bn=True)
+            #inputs_0 = keras.layers.Input(shape=(480, 640, 3))
+            #inputs_1 = keras.layers.Input(shape=(480, 640, 3))
+            inputs_0 = keras.layers.Input(shape=(None, None, 3))
+            inputs_1 = keras.layers.Input(shape=(None, None, 3))
 
     resnet_rgb = keras.applications.resnet.ResNet50(include_top=False, weights='imagenet', input_tensor=inputs_0, pooling=None, classes=num_classes)
     resnet_dep = keras.applications.resnet.ResNet50(include_top=False, weights='imagenet', input_tensor=inputs_1, pooling=None, classes=num_classes)

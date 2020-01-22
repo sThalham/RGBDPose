@@ -25,6 +25,7 @@ import keras
 import keras.preprocessing.image
 import tensorflow as tf
 import numpy as np
+import datetime
 
 # Allow relative imports when being executed as script.
 if __name__ == "__main__" and __package__ is None:
@@ -185,8 +186,8 @@ def create_generators(args, preprocess_image):
     }
 
     transform_generator = random_transform_generator(
-            min_rotation=-0.1,
-            max_rotation=0.1,
+            #min_rotation=-0.1,
+            #max_rotation=0.1,
             min_translation=(-0.2, -0.2),
             max_translation=(0.2, 0.2),
             min_scaling=(0.9, 0.9),
@@ -211,6 +212,7 @@ def create_generators(args, preprocess_image):
         )
     elif args.dataset_type == 'linemod':
         from ..preprocessing.linemod import LinemodGenerator
+        from ..preprocessing.linemod_rotation import LmRotationGenerator
 
         train_generator = LinemodGenerator(
             args.linemod_path,
@@ -219,13 +221,14 @@ def create_generators(args, preprocess_image):
             **common_args
         )
 
-        validation_generator = LinemodGenerator(
+        rotation_generator = LmRotationGenerator(
             args.linemod_path,
-            'val',
-            transform_generator=transform_generator,
+            'lm_real',
+            #transform_generator=domain_shift_generator,
             **common_args
         )
         train_iterations = len(os.listdir(os.path.join(args.linemod_path, 'images/train')))
+        validation_generator = rotation_generator
 
     elif args.dataset_type == 'occlusion':
         from ..preprocessing.occlusion import OcclusionGenerator
@@ -329,7 +332,7 @@ def main(args=None):
     keras.backend.tensorflow_backend.set_session(get_session())
 
     # create the generators
-    train_generator, validation_generator, train_iterations = create_generators(args, backbone.preprocess_image)
+    train_generator, rotation_generator, train_iterations = create_generators(args, backbone.preprocess_image)
 
     # create the model
     if args.snapshot is not None:
@@ -387,11 +390,17 @@ def main(args=None):
     #)
 
     for e in range(args.epochs):
+
+        start_time = datetime.datetime.now()
         for i in range(train_iterations):
             images, targets = train_generator[i]
             loss_pose = training_model.train_on_batch(images, targets)
-            print(loss_pose)
-            print("")
+            #elapsed_time = datetime.now() - start_time
+            #eta = (start_time -elapsed_time) * (elapsed_time/i)
+            print("[Epoch %d/%d] [Iteration %d/%d --- loss: %f, bbox: %f 3DBox: %f, cls: %f]" % (e, args.epochs, i, train_iterations, loss_pose[0], loss_pose[1], loss_pose[2], loss_pose[3]))
+
+            images_rr, targets_rr = rotation_generator[i]
+            loss_RR = training_model.train_on_batch(images_rr, targets_rr)
 
 
 if __name__ == '__main__':
