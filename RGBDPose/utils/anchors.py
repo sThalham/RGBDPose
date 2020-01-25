@@ -93,6 +93,7 @@ def anchor_targets_bbox(
     regression_batch  = np.zeros((batch_size, anchors.shape[0], 4 + 1), dtype=keras.backend.floatx())
     labels_batch      = np.zeros((batch_size, anchors.shape[0], num_classes + 1), dtype=keras.backend.floatx())
     regression_3D = np.zeros((batch_size, anchors.shape[0], 16 + 1), dtype=keras.backend.floatx())
+    relative_rotation_batch = np.zeros((batch_size, 4), dtype=keras.backend.floatx())
 
     # compute labels and regression targets
     for index, (image, annotations) in enumerate(zip(image_group, annotations_group)):
@@ -126,7 +127,35 @@ def anchor_targets_bbox(
             regression_batch[index, indices, -1] = -1
             regression_3D[index, indices, -1] = -1
 
-    return regression_batch, regression_3D, labels_batch
+    return regression_batch, regression_3D, labels_batch, relative_rotation_batch
+
+
+def relative_rotations_targets(
+    anchors,
+    image_group,
+    annotations_group,
+    num_classes,
+    negative_overlap=0.4,
+    positive_overlap=0.5
+):
+
+    assert(len(image_group) == len(annotations_group)), "The length of the images and annotations need to be equal."
+    assert(len(annotations_group) > 0), "No data received to compute anchor targets for."
+    for annotations in annotations_group:
+        assert('labels' in annotations), "Annotations should contain labels."
+
+    batch_size = len(image_group)
+
+    regression_batch  = np.zeros((batch_size, anchors.shape[0], 4 + 1), dtype=keras.backend.floatx())
+    labels_batch      = np.ones((batch_size, anchors.shape[0], num_classes + 1), dtype=keras.backend.floatx()) * -1.0
+    regression_3D = np.zeros((batch_size, anchors.shape[0], 16 + 1), dtype=keras.backend.floatx())
+    relative_rotation_batch = np.zeros((batch_size, 4), dtype=keras.backend.floatx())
+
+    # compute labels and regression targets
+    for index, (image, annotations) in enumerate(zip(image_group, annotations_group)):
+        relative_rotation_batch[index, :] = annotations['labels']
+
+    return regression_batch, regression_3D, labels_batch, relative_rotation_batch
 
 
 def compute_gt_annotations(

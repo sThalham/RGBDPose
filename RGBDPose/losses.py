@@ -95,6 +95,24 @@ def cross(weight=50.0):
     return _cross
 
 
+def cross_DA(weight=1.0):
+
+    def _cross_DA(y_true, y_pred):
+        labels         = y_true
+        classification = y_pred
+
+        cls_loss = weight * keras.losses.categorical_crossentropy(labels, classification)
+
+        #normalizer = backend.where(keras.backend.equal(anchor_state, 1))       # usually for classification
+        #normalizer = keras.backend.cast(keras.backend.shape(normalizer)[0], keras.backend.floatx())
+        #normalizer = keras.backend.maximum(keras.backend.cast_to_floatx(1.0), normalizer)
+
+        #return keras.backend.sum(cls_loss) / normalizer
+        return cls_loss
+
+    return _cross_DA
+
+
 def smooth_l1(sigma=3.0):
     """ Create a smooth L1 loss functor.
 

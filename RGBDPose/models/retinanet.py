@@ -306,14 +306,12 @@ def default_submodels(num_classes, num_anchors):
     return [
         ('bbox', default_regression_model(4, num_anchors)),
         ('3Dbox', default_3Dregression_model(16, num_anchors)),
-        ('cls', default_classification_model(num_classes, num_anchors))
+        ('cls', default_classification_model(num_classes, num_anchors)),
     ]
 
 
 def rotation_submodel():
-    return [
-        ('relative_rotation', default_relative_rotation_model(4)),
-    ]
+    return 'DA', default_relative_rotation_model(4)
 
 
 def __build_model_pyramid(name, model, features):
@@ -322,16 +320,6 @@ def __build_model_pyramid(name, model, features):
 
 def __build_pyramid(models, features):
     return [__build_model_pyramid(n, m, features) for n, m in models]
-
-
-def __build_pyramid_duo(models, features1, features2):
-    outs = []
-    for n, m in models[:3]:
-        outs.append(__build_model_pyramid(n, m, features1))
-    for n, m in models[3:]:
-        outs.append(__build_model_pyramid(n, m, features2))
-
-    return outs
 
 
 def __build_anchors(anchor_parameters, features):
@@ -365,7 +353,7 @@ def retinanet(
     if submodels is None:
 
         submodels = default_submodels(num_classes, num_anchors)
-        #submodels_2 = default_submodels_2(num_classes, num_anchors)
+        submodels_2 = rotation_submodel()
 
     b1, b2, b3 = backbone_layers_rgb
     b4, b5, b6 = backbone_layers_dep
@@ -376,27 +364,10 @@ def retinanet(
     # FPN fusion
     features = create_pyramid_features(b1, b2, b3, b4, b5, b6)
     pyramids = __build_pyramid(submodels, features)
-
-    return keras.models.Model(inputs=inputs, outputs=pyramids, name=name)
-
-
-def retinanet_rel_rot(
-    inputs,
-    backbone_layers_rgb,
-    backbone_layers_dep,
-    create_pyramid_features = __create_sparceFPN,
-    submodels               = None,
-    name                    = 'retinanet_rel_rot'
-):
-
-    if submodels is None:
-        submodels = rotation_submodel()
-
-    b1, b2, b3 = backbone_layers_rgb
-    b4, b5, b6 = backbone_layers_dep
-
-    features = create_pyramid_features(b1, b2, b3, b4, b5, b6)
-    pyramids = __build_pyramid(submodels, features)
+    name_RR, model_RR = submodels_2
+    pyramid_DA = keras.layers.Concatenate(axis=1, name=name_RR)([model_RR(f) for f in features])
+    pyramids.append(pyramid_DA)
+    print(pyramids)
 
     return keras.models.Model(inputs=inputs, outputs=pyramids, name=name)
 
@@ -421,17 +392,15 @@ def retinanet_bbox(
         assert_training_model(model)
 
     # compute the anchors
-    #features = [model.get_layer(p_name).output for p_name in ['P3_con', 'P4_con', 'P5_con', 'P6_con', 'P7_con']]
     features = [model.get_layer(p_name).output for p_name in ['P3', 'P4', 'P5']]
     anchors = __build_anchors(anchor_params, features)
 
     # we expect the anchors, regression and classification values as first output
-    #intermediate_tensor_function = ([model.inputs], [model.outputs[-1]])
-    #pyramids = intermediate_tensor_function([model.outputs[-1]])[0]
     regression = model.outputs[0]
     regression3D = model.outputs[1]
     classification = model.outputs[2]
-    other = model.outputs[3:]
+    domain_adaptation = model.outputs[3]
+    other = model.outputs[4:]
 
     # apply predicted regression to anchors
     boxes = layers.RegressBoxes(name='boxes')([anchors, regression])
