@@ -90,6 +90,7 @@ if __name__ == "__main__":
     meanRGBD = np.zeros((6), np.float64)
 
     syns = os.listdir(root)
+    syns = np.random.choice(syns, 12655, replace=False)
     all = len(syns)
     for fileInd in syns:
         if fileInd.endswith(".yaml"):
@@ -142,9 +143,9 @@ if __name__ == "__main__":
                     #                                                  for_vis=False)
 
                     depthAug[depthAug > depthCut] = 0
-                    scaCro = 255.0 / np.nanmax(depthAug)
-                    cross = np.multiply(depthAug, scaCro)
-                    aug_dep = cross.astype(np.uint8)
+                    #scaCro = 255.0 / np.nanmax(depthAug)
+                    #cross = np.multiply(depthAug, scaCro)
+                    aug_dep = depthAug.astype(np.uint16)
                     #aug_dep = np.repeat(aug_dep[:, :, np.newaxis], 3, 2)
 
                     meanRGBD[0] += np.nanmean(rgbAug[:, :, 0])
@@ -158,7 +159,7 @@ if __name__ == "__main__":
                     # meanRGBD[5] = np.nanmean(depthAug[:, :, 2])
 
                     cv2.imwrite(fileName, rgbAug)
-                    cv2.imwrite(fileName[:-8] + '_dep.jpg', aug_dep)
+                    cv2.imwrite(fileName[:-8] + '_dep.png', aug_dep)
                     #img_rgbd = np.concatenate((rgbAug, aug_dep[:, :, np.newaxis]), axis=2)
                     #cv2.imwrite(fileName, img_rgbd)
                     #np.save(fileName, img_rgbd)
