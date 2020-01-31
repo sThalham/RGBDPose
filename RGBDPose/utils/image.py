@@ -134,6 +134,7 @@ def apply_transform(matrix, image, params):
 
     # rgb
     # seq describes an object for rgb image augmentation using aleju/imgaug
+    '''
     seq = iaa.Sequential([
         # blur
         iaa.SomeOf((1, 2), [
@@ -158,6 +159,8 @@ def apply_transform(matrix, image, params):
                       )
                       ), ], random_order=True)
     image0 = seq.augment_image(image[0])
+    '''
+    image0 = image[0]
     image0 = cv2.warpAffine(
         image0,
         matrix[:2, :],
@@ -168,6 +171,8 @@ def apply_transform(matrix, image, params):
     )
 
     # depth
+    image1 = image[1]
+    '''
     image1 = image[1][:,:,0]
     blurK = np.random.choice([3, 5, 7], 1).astype(int)
     blurS = random.uniform(0.0, 1.5)
@@ -240,6 +245,7 @@ def apply_transform(matrix, image, params):
     image1 = image1[fy, fx] + Wz_scaled * VecF2
     image1 = np.where(image1 > 0, image1, 0.0)
     image1 = np.repeat(image1[:, :, np.newaxis], 3, axis=2)
+    '''
     image1 = cv2.warpAffine(
         image1,
         matrix[:2, :],
