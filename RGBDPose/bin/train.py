@@ -24,6 +24,8 @@ import warnings
 import keras
 import keras.preprocessing.image
 import tensorflow as tf
+import numpy as np
+import datetime
 
 # Allow relative imports when being executed as script.
 if __name__ == "__main__" and __package__ is None:
@@ -97,6 +99,7 @@ def create_models(backbone_retinanet, num_classes, weights, multi_gpu=0,
             'bbox'         : losses.smooth_l1(),
             '3Dbox'        : losses.orthogonal_l1(),
             'cls'          : losses.focal(),
+            'DA'           : losses.cross_DA()
         },
         optimizer=keras.optimizers.adam(lr=lr, clipnorm=0.001)
     )
@@ -184,8 +187,8 @@ def create_generators(args, preprocess_image):
     }
 
     transform_generator = random_transform_generator(
-            min_rotation=-0.1,
-            max_rotation=0.1,
+            #min_rotation=-0.1,
+            #max_rotation=0.1,
             min_translation=(-0.2, -0.2),
             max_translation=(0.2, 0.2),
             min_scaling=(0.9, 0.9),
@@ -210,6 +213,8 @@ def create_generators(args, preprocess_image):
         )
     elif args.dataset_type == 'linemod':
         from ..preprocessing.linemod import LinemodGenerator
+        from ..utils.anchors import relative_rotations_targets
+        from ..preprocessing.linemod_rotation import LmRotationGenerator
 
         train_generator = LinemodGenerator(
             args.linemod_path,
@@ -218,10 +223,11 @@ def create_generators(args, preprocess_image):
             **common_args
         )
 
-        validation_generator = LinemodGenerator(
+        validation_generator = LmRotationGenerator(
             args.linemod_path,
-            'val',
-            transform_generator=transform_generator,
+            'lm_real',
+            args.rotation_crop_side,
+            compute_anchor_targets=relative_rotations_targets,
             **common_args
         )
         train_iterations = int(len(os.listdir(os.path.join(args.linemod_path, 'images/train')))/2)
@@ -302,6 +308,7 @@ def parse_args(args):
     parser.add_argument('--freeze-backbone',  help='Freeze training of backbone layers.', action='store_true')
     parser.add_argument('--image-min-side',   help='Rescale the image so the smallest side is min_side.', type=int, default=480)
     parser.add_argument('--image-max-side',   help='Rescale the image if the largest side is larger than max_side.', type=int, default=640)
+    parser.add_argument('--rotation-crop-side', help='Crop side generate crop of that side for relative rotation slassification.', type=int, default=480)
     parser.add_argument('--weighted-average', help='Compute the mAP using the weighted average of precisions among classes.', action='store_true')
 
     # Fit generator arguments
@@ -359,13 +366,13 @@ def main(args=None):
     print(model.summary())
 
     # create the callbacks
-    callbacks = create_callbacks(
-        model,
-        training_model,
-        prediction_model,
-        validation_generator,
-        args,
-    )
+    #callbacks = create_callbacks(
+    #    model,
+    #    training_model,
+    #    prediction_model,
+    #    validation_generator,
+    #    args,
+    #)
 
     # Use multiprocessing if workers > 0
     if args.workers > 0:
@@ -374,16 +381,30 @@ def main(args=None):
         use_multiprocessing = False
 
     # start training
-    training_model.fit_generator(
-        generator=train_generator,
-        steps_per_epoch=train_iterations,
-        epochs=args.epochs,
-        verbose=1,
-        callbacks=callbacks,
-        workers=args.workers,
-        use_multiprocessing=use_multiprocessing,
-        max_queue_size=args.max_queue_size
-    )
+    #training_model.fit_generator(
+    #    generator=train_generator,
+    #    steps_per_epoch=train_iterations,
+    #    epochs=args.epochs,
+    #    verbose=1,
+    #    callbacks=callbacks,
+    #    workers=args.workers,
+    #    use_multiprocessing=use_multiprocessing,
+    #    max_queue_size=args.max_queue_size
+    #)
+
+    for e in range(args.epochs):
+
+        start_time = datetime.datetime.now()
+        for i in range(18273):
+            images, targets = train_generator[i]
+            loss_pose = training_model.train_on_batch(images, targets)
+            #elapsed_time = datetime.now() - start_time
+            #eta = (start_time -elapsed_time) * (elapsed_time/i)
+            print("[Epoch %d/%d] [Iteration %d/%d --- loss: %f, bbox: %f 3DBox: %f, cls: %f, DA: %f]" % (e, args.epochs, i, train_iterations, loss_pose[0], loss_pose[1], loss_pose[2], loss_pose[3], loss_pose[4]))
+
+            images_rr, targets_rr = validation_generator[i]
+            loss_RR = training_model.train_on_batch(images_rr, targets_rr)
+            print("[                              --- loss: %f, bbox: %f 3DBox: %f, cls: %f, DA: %f]" % (loss_RR[0], loss_RR[1], loss_RR[2], loss_RR[3], loss_RR[4]))
 
 
 if __name__ == '__main__':

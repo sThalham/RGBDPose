@@ -194,6 +194,7 @@ def apply_transform(matrix, image, params):
         # iaa.Sometimes(p=0.5, iaa.JpegCompression((0, 30)), None),
     ], random_order=True)
     image0 = seq.augment_image(image[0])
+    image0 = image[0]
     image0 = cv2.warpAffine(
         image0,
         matrix[:2, :],
@@ -219,6 +220,11 @@ def apply_transform(matrix, image, params):
     noise = np.multiply(dNonVar, random.uniform(0.002, 0.004))  # empirically determined
     image1 = np.random.normal(loc=dNonVar, scale=noise, size=dNonVar.shape)
     image1 = cv2.resize(image1, (image[1].shape[1], image[1].shape[0]))
+    image1 = image[1][:,:,0]
+    blurK = np.random.choice([3, 5, 7], 1).astype(int)
+    blurS = random.uniform(0.0, 1.5)
+
+    image1 = cv2.GaussianBlur(image1, (blurK, blurK), blurS, blurS)
 
     # fast perlin noise
     seed = np.random.randint(2 ** 31)
