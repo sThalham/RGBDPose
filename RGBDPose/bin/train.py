@@ -71,7 +71,7 @@ def model_with_weights(model, weights, skip_mismatch):
 
 
 def create_models(backbone_retinanet, num_classes, weights, multi_gpu=0,
-                  freeze_backbone=False, lr=1e-5):
+                  freeze_backbone=False, lr=3e-5):
 
     modifier = freeze_model if freeze_backbone else None
 
@@ -101,7 +101,7 @@ def create_models(backbone_retinanet, num_classes, weights, multi_gpu=0,
             'cls'          : losses.focal(),
             'DA'           : losses.cross_DA()
         },
-        optimizer=keras.optimizers.adam(lr=lr, clipnorm=0.001)
+        optimizer=keras.optimizers.adam(lr=lr, decay=3e-5, clipnorm=0.001)
     )
 
     return model, training_model, prediction_model
@@ -214,7 +214,7 @@ def create_generators(args, preprocess_image):
     elif args.dataset_type == 'linemod':
         from ..preprocessing.linemod import LinemodGenerator
         from ..utils.anchors import relative_rotations_targets
-        from ..preprocessing.linemod_rotation import LmRotationGenerator
+        from ..preprocessing.DA_generator import DAGenerator
 
         train_generator = LinemodGenerator(
             args.linemod_path,
@@ -223,14 +223,34 @@ def create_generators(args, preprocess_image):
             **common_args
         )
 
-        validation_generator = LmRotationGenerator(
+        validation_generator = LinemodGenerator(
             args.linemod_path,
-            'lm_real',
-            args.rotation_crop_side,
-            compute_anchor_targets=relative_rotations_targets,
+            'val',
+            transform_generator=transform_generator,
             **common_args
         )
         train_iterations = int(len(os.listdir(os.path.join(args.linemod_path, 'images/train')))/2)
+    elif args.dataset_type == 'linemod_DA':
+        from ..preprocessing.linemod import LinemodGenerator
+        from ..utils.anchors import relative_rotations_targets
+        from ..preprocessing.DA_generator import DAGenerator
+
+        train_generator = DAGenerator(
+            args.linemod_path,
+            'train',
+            'lm_real',
+            args.rotation_crop_side,
+            transform_generator=transform_generator,
+            **common_args
+        )
+
+        validation_generator = LinemodGenerator(
+            args.linemod_path,
+            'val',
+            transform_generator=transform_generator,
+            **common_args
+        )
+        train_iterations = int(len(os.listdir(os.path.join(args.linemod_path, 'images/train'))))
 
     elif args.dataset_type == 'occlusion':
         from ..preprocessing.occlusion import OcclusionGenerator
@@ -283,6 +303,9 @@ def parse_args(args):
 
     linemod_parser = subparsers.add_parser('linemod')
     linemod_parser.add_argument('linemod_path', help='Path to dataset directory (ie. /tmp/linemod).')
+    
+    linemod_DA_parser = subparsers.add_parser('linemod_DA')
+    linemod_DA_parser.add_argument('linemod_path', help='Path to dataset directory (ie. /tmp/linemod).')
 
     occlusion_parser = subparsers.add_parser('occlusion')
     occlusion_parser.add_argument('occlusion_path', help='Path to dataset directory (ie. /tmp/occlusion.')
@@ -297,7 +320,7 @@ def parse_args(args):
     group.add_argument('--no-weights',        help='Don\'t initialize the model with any weights.', dest='imagenet_weights', action='store_const', const=False)
 
     parser.add_argument('--backbone', help='Backbone model used by retinanet.', default='resnet50', type=str)
-    parser.add_argument('--batch-size',       help='Size of the batches.', default=1, type=int)
+    parser.add_argument('--batch-size',       help='Size of the batches.', default=6, type=int)
     parser.add_argument('--gpu',              help='Id of the GPU to use (as reported by nvidia-smi).')
     parser.add_argument('--epochs',           help='Number of epochs to train.', type=int, default=20)
     parser.add_argument('--lr',               help='Learning rate.', type=float, default=1e-5)
@@ -308,11 +331,11 @@ def parse_args(args):
     parser.add_argument('--freeze-backbone',  help='Freeze training of backbone layers.', action='store_true')
     parser.add_argument('--image-min-side',   help='Rescale the image so the smallest side is min_side.', type=int, default=480)
     parser.add_argument('--image-max-side',   help='Rescale the image if the largest side is larger than max_side.', type=int, default=640)
-    parser.add_argument('--rotation-crop-side', help='Crop side generate crop of that side for relative rotation slassification.', type=int, default=480)
+    parser.add_argument('--rotation-crop-side', help='Crop side generate crop of that side for relative rotation slassification.', type=int, default=240)
     parser.add_argument('--weighted-average', help='Compute the mAP using the weighted average of precisions among classes.', action='store_true')
 
     # Fit generator arguments
-    parser.add_argument('--workers', help='Number of multiprocessing workers. To disable multiprocessing, set workers to 0', type=int, default=3)
+    parser.add_argument('--workers', help='Number of multiprocessing workers. To disable multiprocessing, set workers to 0', type=int, default=4)
     parser.add_argument('--max-queue-size', help='Queue length for multiprocessing workers in fit generator.', type=int, default=10)
 
     return parser.parse_args(args)
@@ -363,16 +386,16 @@ def main(args=None):
         )
 
     # print model summary
-    print(model.summary())
+    #print(model.summary())
 
     # create the callbacks
-    #callbacks = create_callbacks(
-    #    model,
-    #    training_model,
-    #    prediction_model,
-    #    validation_generator,
-    #    args,
-    #)
+    callbacks = create_callbacks(
+        model,
+        training_model,
+        prediction_model,
+        validation_generator,
+        args,
+    )
 
     # Use multiprocessing if workers > 0
     if args.workers > 0:
@@ -381,30 +404,33 @@ def main(args=None):
         use_multiprocessing = False
 
     # start training
-    #training_model.fit_generator(
-    #    generator=train_generator,
-    #    steps_per_epoch=train_iterations,
-    #    epochs=args.epochs,
-    #    verbose=1,
-    #    callbacks=callbacks,
-    #    workers=args.workers,
-    #    use_multiprocessing=use_multiprocessing,
-    #    max_queue_size=args.max_queue_size
-    #)
+    training_model.fit_generator(
+        generator=train_generator,
+        steps_per_epoch=int((train_iterations)/args.batch_size),
+        epochs=args.epochs,
+        verbose=1,
+        callbacks=callbacks,
+        workers=args.workers,
+        use_multiprocessing=use_multiprocessing,
+        max_queue_size=args.max_queue_size
+    )
 
-    for e in range(args.epochs):
+    #print('iterations: ', int(18271/args.batch_size))
 
-        start_time = datetime.datetime.now()
-        for i in range(18273):
-            images, targets = train_generator[i]
-            loss_pose = training_model.train_on_batch(images, targets)
-            #elapsed_time = datetime.now() - start_time
-            #eta = (start_time -elapsed_time) * (elapsed_time/i)
-            print("[Epoch %d/%d] [Iteration %d/%d --- loss: %f, bbox: %f 3DBox: %f, cls: %f, DA: %f]" % (e, args.epochs, i, train_iterations, loss_pose[0], loss_pose[1], loss_pose[2], loss_pose[3], loss_pose[4]))
+    #for e in range(args.epochs):
+    #    for i in range(int(18271/args.batch_size)):
+    #        #batch = np.arange(i,(i+args.batch_size), dtype=np.uint16)
+    #        images, targets = train_generator[i]
+    #        loss_pose = training_model.train_on_batch(images, targets)
+    #        images_rr, targets_rr = validation_generator[i]
+    #        loss_RR = training_model.train_on_batch(images_rr, targets_rr) 
 
-            images_rr, targets_rr = validation_generator[i]
-            loss_RR = training_model.train_on_batch(images_rr, targets_rr)
-            print("[                              --- loss: %f, bbox: %f 3DBox: %f, cls: %f, DA: %f]" % (loss_RR[0], loss_RR[1], loss_RR[2], loss_RR[3], loss_RR[4]))
+            #if loss_RR[4] < 0.01:
+            #    sys.exit()
+
+    #        print("[Epoch %d/%d] [Iteration %d/%d --- loss: %f, bbox: %f 3DBox: %f, cls: %f, DA: %f]" % (e, args.epochs, i, int(18271/args.batch_size), loss_pose[0], loss_pose[1], loss_pose[2], loss_pose[3], loss_RR[4]))
+            #print(i)
+    #    training_model.save("models/linemod_DA_{}.hd5".format(e))
 
 
 if __name__ == '__main__':

@@ -41,7 +41,12 @@ class LinemodGenerator(Generator):
         with open(self.path, 'r') as js:
             data = json.load(js)
 
+        #self.image_ann = []
+        #for anno in data["images"]:
+        #    if int(anno['id']) > 18274:
+        #        self.image_ann.append(anno)
         self.image_ann = data["images"]
+        print(len(self.image_ann))
         anno_ann = data["annotations"]
         cat_ann = data["categories"]
         self.cats = {}
@@ -156,8 +161,8 @@ class LinemodGenerator(Generator):
         elif type(image_index) == int:
             image_info = self.image_ann[image_index]
         path       = os.path.join(self.data_dir, 'images', self.set_name, image_info['file_name'])
-        path = path[:-4] + '_dep.png'# + path[-4:]
-        #path = path[:-4] + '_dep' + path[-4:]
+        #path = path[:-4] + '_dep.png'# + path[-4:]
+        path = path[:-4] + '_dep' + path[-4:]
 
         return read_image_dep(path)
 

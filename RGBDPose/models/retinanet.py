@@ -156,11 +156,14 @@ def default_relative_rotation_model(num_values, pyramid_feature_size=256, regres
 
     outputs = inputs
     outputs = keras.layers.Conv2D(filters=regression_feature_size, activation='relu', **options)(outputs)
+    outputs = keras.layers.Conv2D(filters=regression_feature_size, activation='relu', **options)(outputs)
+    outputs = keras.layers.GlobalMaxPooling2D()(outputs)    
 
-    outputs = keras.layers.Conv2D(num_values, **options)(outputs)
+    outputs = keras.layers.Dense(num_values)(outputs)
     if keras.backend.image_data_format() == 'channels_first':
         outputs = keras.layers.Permute((2, 3, 1))(outputs)
     outputs = keras.layers.Reshape((-1, num_values))(outputs)
+    outputs = keras.layers.Activation('sigmoid')(outputs) # , name='pyramid_classification_sigmoid'
 
     return keras.models.Model(inputs=inputs, outputs=outputs)
 
@@ -365,9 +368,10 @@ def retinanet(
     features = create_pyramid_features(b1, b2, b3, b4, b5, b6)
     pyramids = __build_pyramid(submodels, features)
     name_RR, model_RR = submodels_2
+    #for f in features:
+    #    print(f)
     pyramid_DA = keras.layers.Concatenate(axis=1, name=name_RR)([model_RR(f) for f in features])
     pyramids.append(pyramid_DA)
-    print(pyramids)
 
     return keras.models.Model(inputs=inputs, outputs=pyramids, name=name)
 

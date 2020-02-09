@@ -375,22 +375,16 @@ class Generator(keras.utils.Sequence):
         # load images and annotations
         image_group       = self.load_image_group(group) # image group is now [image_rgb, image_dep]
         annotations_group = self.load_annotations_group(group)
-
         # check validity of annotations
         image_group, annotations_group = self.filter_annotations(image_group, annotations_group, group)
-
         # randomly transform data
         image_group, annotations_group = self.random_transform_group(image_group, annotations_group)
-
         # perform preprocessing steps
         image_group, annotations_group = self.preprocess_group(image_group, annotations_group)
-
         # compute network inputs
         inputs = self.compute_inputs(image_group)
-
         # compute network targets
         targets = self.compute_targets(image_group, annotations_group)
-
         return inputs, targets
 
     def __len__(self):

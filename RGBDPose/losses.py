@@ -63,7 +63,10 @@ def focal(alpha=0.25, gamma=2.0):
         normalizer = keras.backend.cast(keras.backend.shape(normalizer)[0], keras.backend.floatx())
         normalizer = keras.backend.maximum(keras.backend.cast_to_floatx(1.0), normalizer)
 
-        return keras.backend.sum(cls_loss) / normalizer
+        loss = keras.backend.sum(cls_loss) / normalizer
+        #loss = keras.backend.print_tensor(loss, message='loss_cls = ')
+
+        return loss
 
     return _focal
 
@@ -95,20 +98,27 @@ def cross(weight=50.0):
     return _cross
 
 
-def cross_DA(weight=1.0):
+def cross_DA(weight=8.0):
 
     def _cross_DA(y_true, y_pred):
-        labels         = y_true
+        labels         = y_true[:, :, :-1]
+        anchor_state = y_true[:, :, -1]
         classification = y_pred
 
+        indices        = backend.where(keras.backend.equal(anchor_state, 1))
+        labels         = backend.gather_nd(labels, indices)
+        classification = backend.gather_nd(classification, indices)
+        
         cls_loss = weight * keras.losses.categorical_crossentropy(labels, classification)
 
-        #normalizer = backend.where(keras.backend.equal(anchor_state, 1))       # usually for classification
-        #normalizer = keras.backend.cast(keras.backend.shape(normalizer)[0], keras.backend.floatx())
-        #normalizer = keras.backend.maximum(keras.backend.cast_to_floatx(1.0), normalizer)
+        normalizer = backend.where(keras.backend.equal(anchor_state, 1))       # usually for classification
+        normalizer = keras.backend.cast(keras.backend.shape(normalizer)[0], keras.backend.floatx())
+        normalizer = keras.backend.maximum(keras.backend.cast_to_floatx(1.0), normalizer)
 
-        #return keras.backend.sum(cls_loss) / normalizer
-        return cls_loss
+        loss = keras.backend.sum(cls_loss) / normalizer
+        #loss = keras.backend.print_tensor(loss, message='loss_DA = ')
+        return loss
+        #return cls_loss / normalizer
 
     return _cross_DA
 
@@ -159,6 +169,7 @@ def smooth_l1(sigma=3.0):
         normalizer = keras.backend.maximum(1, keras.backend.shape(indices)[0])
         normalizer = keras.backend.cast(normalizer, dtype=keras.backend.floatx())
         loss = keras.backend.sum(regression_loss) / normalizer
+        #loss = keras.backend.print_tensor(loss, message='loss_bbox = ')
         return loss
 
     return _smooth_l1
@@ -321,7 +332,10 @@ def orthogonal_l1(weight=0.125, sigma=3.0):
         normalizer = keras.backend.cast(normalizer, dtype=keras.backend.floatx())
         regression_loss_xy = keras.backend.sum(regression_xy) / normalizer
         regression_loss_orth = keras.backend.sum(regression_orth) / normalizer
-        return weight * (weight_xy * regression_loss_xy + weight_orth * regression_loss_orth)
+        loss =  weight * (weight_xy * regression_loss_xy + weight_orth * regression_loss_orth)
+        #loss = keras.backend.print_tensor(loss, message='loss_CP = ')
+
+        return loss
 
     return _orth_l1
 

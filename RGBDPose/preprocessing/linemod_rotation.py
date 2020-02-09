@@ -15,9 +15,10 @@ limitations under the License.
 """
 
 from ..preprocessing.generator import Generator
-from ..utils.image import read_image_bgr
+from ..utils.image import read_image_bgr, preprocess_image
 from collections import defaultdict
 
+import keras
 import os
 import numpy as np
 import cv2
@@ -44,11 +45,13 @@ class LmRotationGenerator(Generator):
         self.image_ids_syn = [img[:-8] for img in self.image_ids_syn]
         self.image_ids_syn = np.unique(np.asarray(self.image_ids_syn))
         np.random.shuffle(self.image_ids_syn)
+        print(len(self.image_ids_syn))
 
         self.image_ids_real = os.listdir(os.path.join(self.path_real))
         self.image_ids_real = [img[:-8] for img in self.image_ids_real]
         self.image_ids_real = np.unique(np.asarray(self.image_ids_real))
         np.random.shuffle(self.image_ids_real)
+        print(len(self.image_ids_syn))
 
         self.domain = True
 
@@ -79,10 +82,10 @@ class LmRotationGenerator(Generator):
         """
         if self.domain:
             path = os.path.join(self.path_real, self.image_ids_real[image_index])
-            path = path + '_dep.jpg'
+            path = path + '_dep.png'
         else:
             path = os.path.join(self.path_syn, self.image_ids_syn[image_index])
-            path = path + '_dep.jpg'
+            path = path + '_dep.png'
 
         return read_image_bgr(path)
 
@@ -100,8 +103,6 @@ class LmRotationGenerator(Generator):
         for index in range(len(image_group)):
             # transform a single group entry
             img_tuple = image_group[index]
-
-            cv2.imwrite('/home/sthalham/RR_nonrot.jpg', img_tuple[0])
 
             if self.crop_size >= img_tuple[0].shape[0]:
                 off_y = 0
@@ -136,6 +137,7 @@ class LmRotationGenerator(Generator):
                 elif angle_1 == (math.pi + math.pi*0.5):
                     img_tuple[1] = cv2.rotate(img_tuple[1], cv2.ROTATE_90_CLOCKWISE)
 
+            img_tuple[1] = img_tuple[1] * (255.0/np.nanmax(img_tuple[1]))
             image_group[index] = [img_tuple[0], img_tuple[1]]
 
             these_labels = np.zeros((4))
@@ -177,7 +179,13 @@ class LmRotationGenerator(Generator):
         image_group, annotations_group = self.random_rotation(image_group, annotations_group)
 
         # perform preprocessing steps
-        image_group, annotations_group = self.preprocess_group(image_group, annotations_group)
+        #image_group, annotations_group = self.preprocess_group(image_group, annotations_group)
+        for i in range(len(image_group)):
+            image_group[i][0] = preprocess_image(image_group[i][0])
+            image_group[i][1] = preprocess_image(image_group[i][1])
+
+            image_group[i][0] = keras.backend.cast_to_floatx(image_group[i][0])
+            image_group[i][1] = keras.backend.cast_to_floatx(image_group[i][1])
 
         # compute network inputs
         inputs = self.compute_inputs(image_group)

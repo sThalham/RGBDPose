@@ -93,7 +93,7 @@ def anchor_targets_bbox(
     regression_batch  = np.zeros((batch_size, anchors.shape[0], 4 + 1), dtype=keras.backend.floatx())
     labels_batch      = np.zeros((batch_size, anchors.shape[0], num_classes + 1), dtype=keras.backend.floatx())
     regression_3D = np.zeros((batch_size, anchors.shape[0], 16 + 1), dtype=keras.backend.floatx())
-    relative_rotation_batch = np.zeros((batch_size, 4), dtype=keras.backend.floatx())
+    relative_rotation_batch = np.zeros((batch_size, 3, 4+1), dtype=keras.backend.floatx())
 
     # compute labels and regression targets
     for index, (image, annotations) in enumerate(zip(image_group, annotations_group)):
@@ -117,6 +117,8 @@ def anchor_targets_bbox(
 
             regression_3D[index, :, :-1] = box3D_transform(anchors, annotations['segmentations'][argmax_overlaps_inds, :], num_classes)
             #regression_3D[index, positive_indices, annotations['labels'][argmax_overlaps_inds[positive_indices]].astype(int), -1] = 1
+
+            #print('task: ', annotations['rotations'])
 
         # ignore annotations outside of image
         if image[0].shape:
@@ -147,13 +149,15 @@ def relative_rotations_targets(
     batch_size = len(image_group)
 
     regression_batch  = np.zeros((batch_size, anchors.shape[0], 4 + 1), dtype=keras.backend.floatx())
-    labels_batch      = np.ones((batch_size, anchors.shape[0], num_classes + 1), dtype=keras.backend.floatx()) * -1.0
+    labels_batch      = np.ones((batch_size, anchors.shape[0], num_classes + 1), dtype=keras.backend.floatx()) * -1
     regression_3D = np.zeros((batch_size, anchors.shape[0], 16 + 1), dtype=keras.backend.floatx())
-    relative_rotation_batch = np.zeros((batch_size, 4), dtype=keras.backend.floatx())
+    relative_rotation_batch = np.zeros((batch_size, 3, 4 + 1), dtype=keras.backend.floatx())
 
     # compute labels and regression targets
     for index, (image, annotations) in enumerate(zip(image_group, annotations_group)):
-        relative_rotation_batch[index, :] = annotations['labels']
+
+        relative_rotation_batch[index, :, -1] = 1
+        relative_rotation_batch[index, :, :-1] = np.repeat(annotations['rotations'][np.newaxis, :], 3, axis=0)
 
     return regression_batch, regression_3D, labels_batch, relative_rotation_batch
 

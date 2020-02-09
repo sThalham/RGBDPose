@@ -144,6 +144,7 @@ def apply_transform(matrix, image, params):
 
     # rgb
     # seq describes an object for rgb image augmentation using aleju/imgaug
+    '''
     seq = iaa.Sequential([
         # blur
         iaa.SomeOf((0, 2), [
@@ -194,6 +195,7 @@ def apply_transform(matrix, image, params):
         # iaa.Sometimes(p=0.5, iaa.JpegCompression((0, 30)), None),
     ], random_order=True)
     image0 = seq.augment_image(image[0])
+    '''
     image0 = image[0]
     image0 = cv2.warpAffine(
         image0,
@@ -206,6 +208,7 @@ def apply_transform(matrix, image, params):
 
     # depth
     image1 = image[1]
+    '''
     image1 = image1.astype('float32')
     blurK = np.random.choice([3, 5, 7], 1).astype(int)
     blurS = random.uniform(0.0, 1.5)
@@ -220,11 +223,6 @@ def apply_transform(matrix, image, params):
     noise = np.multiply(dNonVar, random.uniform(0.002, 0.004))  # empirically determined
     image1 = np.random.normal(loc=dNonVar, scale=noise, size=dNonVar.shape)
     image1 = cv2.resize(image1, (image[1].shape[1], image[1].shape[0]))
-    image1 = image[1][:,:,0]
-    blurK = np.random.choice([3, 5, 7], 1).astype(int)
-    blurS = random.uniform(0.0, 1.5)
-
-    image1 = cv2.GaussianBlur(image1, (blurK, blurK), blurS, blurS)
 
     # fast perlin noise
     seed = np.random.randint(2 ** 31)
@@ -291,6 +289,7 @@ def apply_transform(matrix, image, params):
     fy = fy.astype(dtype=np.uint16)
     image1 = image1[fy, fx] + Wz_scaled * VecF2
     image1 = np.where(image1 > 0, image1, 0.0)
+    '''
     image1 = np.repeat(image1[:, :, np.newaxis], 3, axis=2)
     image1 = np.multiply(image1, 255.0/np.nanmax(image1))
     image1 = cv2.warpAffine(
