@@ -333,8 +333,10 @@ class Generator(keras.utils.Sequence):
         max_shape = tuple(max(image[0].shape[x] for image in image_group) for x in range(3))
 
         # construct an image batch object
-        image_batch1 = np.zeros((self.batch_size,) + max_shape, dtype=keras.backend.floatx())
-        image_batch2 = np.zeros((self.batch_size,) + max_shape, dtype=keras.backend.floatx())
+        #image_batch1 = np.zeros((self.batch_size,) + max_shape, dtype=keras.backend.floatx())
+        #image_batch2 = np.zeros((self.batch_size,) + max_shape, dtype=keras.backend.floatx())
+        image_batch1 = np.zeros((len(image_group),) + max_shape, dtype=keras.backend.floatx())
+        image_batch2 = np.zeros((len(image_group),) + max_shape, dtype=keras.backend.floatx())
 
         # copy all images to the upper left part of the image batch object
         for image_index, image in enumerate(image_group):

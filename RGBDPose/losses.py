@@ -98,7 +98,7 @@ def cross(weight=50.0):
     return _cross
 
 
-def cross_DA(weight=8.0):
+def cross_DA(weight=1.0):
 
     def _cross_DA(y_true, y_pred):
         labels         = y_true[:, :, :-1]
