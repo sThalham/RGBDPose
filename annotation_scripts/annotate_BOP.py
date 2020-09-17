@@ -189,8 +189,8 @@ def create_BB(rgb):
 if __name__ == "__main__":
 
     dataset = 'linemod'
-    root = "/home/stefan/data/datasets/YCBV_BOP_train/"  # path to train samples, depth + rgb
-    target = '/home/stefan/data/train_data/ycbv_PBR_BOP/'
+    root = "/home/stefan/data/datasets/YCBV_BOP_val/"  # path to train samples, depth + rgb
+    target = '/home/stefan/data/train_data/ycbv_RGBD_val/'
     mesh_info = '/home/stefan/data/Meshes/ycb_video/models/models_info.json'
     # print(root)
     visu = False
@@ -312,7 +312,7 @@ if __name__ == "__main__":
             camT_vis = []
             # if rnd == 1:
 
-            fileName = target + 'images/train/' + imgNam[:-4] + '_dep.png'
+            fileName = target + 'images/val/' + imgNam[:-4] + '_dep.png'
             myFile = Path(fileName)
             if myFile.exists():
                 print('File exists, skip encoding, ', fileName)
@@ -343,8 +343,8 @@ if __name__ == "__main__":
 
                 gtPose = scenejson.get(str(samp))
                 obj_id = gtPose[i]['obj_id']
-                if obj_id == 7 or obj_id == 3:
-                    continue
+                #if obj_id == 7 or obj_id == 3:
+                #    continue
 
                 R = gtPose[i]["cam_R_m2c"]
                 T = gtPose[i]["cam_t_m2c"]
@@ -484,7 +484,7 @@ if __name__ == "__main__":
         }
         dict["categories"].append(tempC)
 
-    valAnno = target + 'annotations/instances_train.json'
+    valAnno = target + 'annotations/instances_val.json'
 
     with open(valAnno, 'w') as fpT:
         json.dump(dict, fpT)
