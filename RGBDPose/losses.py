@@ -63,7 +63,7 @@ def focal(alpha=0.25, gamma=2.0):
         normalizer = keras.backend.cast(keras.backend.shape(normalizer)[0], keras.backend.floatx())
         normalizer = keras.backend.maximum(keras.backend.cast_to_floatx(1.0), normalizer)
 
-        return 0.002 * (keras.backend.sum(cls_loss) / normalizer)
+        return 0.0005 * (keras.backend.sum(cls_loss) / normalizer)
 
     return _focal
 
@@ -318,7 +318,7 @@ def weighted_msle(weight=5.0):
     return _msle
 
 
-def orthogonal_l1(weight=0.0125, sigma=3.0):
+def orthogonal_l1(weight=0.02, sigma=3.0):
 
     weight_xy = 0.8
     weight_orth = 0.2

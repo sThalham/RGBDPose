@@ -270,7 +270,7 @@ def evaluate_occlusion(generator, model, threshold=0.05):
         images.append(image)
         images.append(image_dep)
         boxes3D, scores, mask = model.predict_on_batch(
-            [np.expand_dims(image, axis=0), np.expand_dims(image_dep, axis=0)])
+            np.expand_dims(image, axis=0))#, np.expand_dims(image_dep, axis=0)])
 
         image = image_raw
         image_mask = copy.deepcopy(image_raw)
@@ -284,7 +284,7 @@ def evaluate_occlusion(generator, model, threshold=0.05):
             t_gt = t_gt * 0.001
 
             ori_points = np.ascontiguousarray(threeD_boxes[int(lab), :, :], dtype=np.float32)
-            colGT = (0, 204, 0)
+            colGT = (255, 0, 0)
             tDbox = R_gt.dot(ori_points.T).T
             tDbox = tDbox + np.repeat(t_gt[:, np.newaxis], 8, axis=1).T
             box3D = toPix_array(tDbox)
@@ -372,37 +372,9 @@ def evaluate_occlusion(generator, model, threshold=0.05):
             image_mask = np.where(cls_img > 0
                                   , cls_img, image_mask)
 
-            '''
-            # mask from anchors
-            pot_mask = scores[0, :, inv_cls]
-            pot_mask_P3 = pot_mask[:43200]
-            pot_mask_P4 = pot_mask[43200:54000]
-            pot_mask_P4 = pot_mask[54000:]
-            print(pot_mask.shape)
-
-            sidx = 0
-            eidx = 0
-            mask_P3 = np.zeros((4800), dtype=np.float32)
-            for idx in range(4800):
-                eidx = eidx + 9
-                mask_P3[idx] = np.sum(pot_mask_P3[sidx:eidx])
-                sidx = eidx
-
-            print(mask_P3.shape)
-            print(np.nanmax(mask_P3))
-            mask_P3 = np.where(mask_P3 > 0.5 * (np.nanmax(mask_P3)), 255, 0)
-            cls_img = mask_P3.reshape((60, 80)).astype(np.uint8)
-            cls_img = cv2.resize(cls_img, (640, 480), interpolation=cv2.INTER_NEAREST)
-            cv2.imwrite('/home/stefan/RGBDPose_viz/pot_mask.jpg', cls_img)
-            cls_img = np.repeat(cls_img[:, :, np.newaxis], 3, 2)
-            cls_img = np.where(cls_img > 254, cls_img, image_raw)
-            cv2.imwrite('/home/stefan/RGBDPose_viz/pred_mask.jpg', cls_img)
-            '''
-
             anno_ind = np.argwhere(anno['labels'] == cls)
             t_tra = anno['poses'][anno_ind[0][0]][:3]
             t_rot = anno['poses'][anno_ind[0][0]][3:]
-            # print(t_rot)
 
             BOP_obj_id = np.asarray([true_cat], dtype=np.uint32)
 
@@ -452,36 +424,13 @@ def evaluate_occlusion(generator, model, threshold=0.05):
             R_est, _ = cv2.Rodrigues(orvec)
             t_est = otvec
 
-            ##############################
-            # pnp
-            # pose_votes = boxes3D[0, cls_indices, :]
-            # pose_weights = scores[0, cls_indices, :]
-            # print(pose_votes.shape)
-            # print(pose_weights.shape)
-            # print(ori_points.shape)
-
-            # Rt = uncertainty_pnp(pose_votes, pose_weights, ori_points, K)
-
-            # BOP_score = -1
-            # R_est = tf3d.quaternions.quat2mat(pose[3:])
-            # t_est = pose[:3]
-            # t_est[:2] = t_est[:2] * 0.5
-            # t_est[2] = (t_est[2] / 3 + 1.0)
-
             BOP_R = R_est.flatten().tolist()
             BOP_t = t_est.flatten().tolist()
 
-            # result = [int(BOP_scene_id), int(BOP_im_id), int(BOP_obj_id), float(BOP_score), BOP_R[0], BOP_R[1], BOP_R[2], BOP_R[3], BOP_R[4], BOP_R[5], BOP_R[6], BOP_R[7], BOP_R[8], BOP_t[0], BOP_t[1], BOP_t[2]]
-            # result = [int(BOP_scene_id), int(BOP_im_id), int(BOP_obj_id), float(BOP_score), BOP_R, BOP_t]
-            # results_image.append(result)
 
-            # t_rot = tf3d.euler.euler2mat(t_rot[0], t_rot[1], t_rot[2])
             t_rot = tf3d.quaternions.quat2mat(t_rot)
             R_gt = np.array(t_rot, dtype=np.float32).reshape(3, 3)
             t_gt = np.array(t_tra, dtype=np.float32)
-
-            # print(t_est)
-            # print(t_gt)
 
             t_gt = t_gt * 0.001
             t_est = t_est.T  # * 0.001
@@ -507,7 +456,10 @@ def evaluate_occlusion(generator, model, threshold=0.05):
             eDbox = np.reshape(est3D, (16))
             pose = eDbox.astype(np.uint16)
 
-            colEst = (255, 0, 0)
+            if err_add < model_dia[true_cat] * 0.1:
+                colEst = (0, 205, 0)
+            else:
+                colEst = (0, 0, 255)
 
             image = cv2.line(image, tuple(pose[0:2].ravel()), tuple(pose[2:4].ravel()), colEst, 2)
             image = cv2.line(image, tuple(pose[2:4].ravel()), tuple(pose[4:6].ravel()), colEst, 2)
@@ -542,10 +494,13 @@ def evaluate_occlusion(generator, model, threshold=0.05):
                 idx = idx+8
             '''
 
-        #name = '/home/stefan/occ_viz/img_' + str(index) + '.jpg'
-        #cv2.imwrite(name, image)
+        name = '/home/stefan/occ_viz/img_' + str(index) + '.jpg'
+        cv2.imwrite(name, image)
         cv2.imwrite('/home/stefan/occ_viz/pred_mask_' + str(index) + '_.jpg', image_mask)
-        #print('break')
+
+        print('allPoses: ', allPoses)
+        print('truePoses: ', truePoses)
+        print('break')
 
     recall = np.zeros((16), dtype=np.float32)
     precision = np.zeros((16), dtype=np.float32)
