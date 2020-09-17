@@ -63,7 +63,7 @@ def focal(alpha=0.25, gamma=2.0):
         normalizer = keras.backend.cast(keras.backend.shape(normalizer)[0], keras.backend.floatx())
         normalizer = keras.backend.maximum(keras.backend.cast_to_floatx(1.0), normalizer)
 
-        return 0.0001 * (keras.backend.sum(cls_loss) / normalizer)
+        return keras.backend.sum(cls_loss) / normalizer
 
     return _focal
 
@@ -105,7 +105,7 @@ def focal_mask(alpha=0.25, gamma=2.0):
         focal_weight = backend.where(keras.backend.equal(labels, 1), 1 - classification, classification)
         focal_weight = alpha_factor * focal_weight ** gamma
 
-        cls_loss = 0.0005 * focal_weight * keras.backend.binary_crossentropy(labels, classification)
+        cls_loss = focal_weight * keras.backend.binary_crossentropy(labels, classification)
 
         # compute the normalizer: the number of positive anchors
         normalizer = backend.where(keras.backend.equal(anchor_state, 1))

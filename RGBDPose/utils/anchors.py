@@ -102,8 +102,8 @@ def anchor_targets_bbox(
     for index, (image, annotations) in enumerate(zip(image_group, annotations_group)):
 
         mask = annotations['mask'][0]
-        image_shapes = guess_shapes(image[0].shape[:2], pyramid_levels)
-        # mask_viz = cv2.resize(image[0], (image_shapes[0][1], image_shapes[0][0])).reshape((image_shapes[0][1] * image_shapes[0][0], 3))
+        image_shapes = guess_shapes(image.shape[:2], pyramid_levels)
+        #mask_viz = cv2.resize(image, (image_shapes[0][1], image_shapes[0][0])).reshape((image_shapes[0][1] * image_shapes[0][0], 3))
 
         # image_raw = image[0]
         # sca = 256.0 / (np.nanmax(image_raw) - np.nanmin(image_raw))
@@ -157,32 +157,14 @@ def anchor_targets_bbox(
                 if len(anchors_spec) > 1:
                     mask_batch[index, anchors_spec, cls] = 1
                     mask_batch[index, anchors_spec, -1] = 1
-                    # mask_viz[anchors_spec, :] = int(10*cls)
+                    #mask_viz[anchors_spec, :] = int(17*cls)
 
                     #regression_3D[index, anchors_spec, -1] = 1
                     #regression_3D[index, anchors_spec, :-1] = box3D_transform_Hu(box3D, num_classes)
 
                 '''
                 pose = box3D.reshape((16)).astype(np.int16)
-                image_raw = image[0]
-                colEst = (255, 0, 0)
-                image_raw = cv2.line(image_raw, tuple(pose[0:2].ravel()), tuple(pose[2:4].ravel()), colEst, 5)
-                image_raw = cv2.line(image_raw, tuple(pose[2:4].ravel()), tuple(pose[4:6].ravel()), colEst, 5)
-                image_raw = cv2.line(image_raw, tuple(pose[4:6].ravel()), tuple(pose[6:8].ravel()), colEst, 5)
-                image_raw = cv2.line(image_raw, tuple(pose[6:8].ravel()), tuple(pose[0:2].ravel()), colEst, 5)
-                image_raw = cv2.line(image_raw, tuple(pose[0:2].ravel()), tuple(pose[8:10].ravel()), colEst, 5)
-                image_raw = cv2.line(image_raw, tuple(pose[2:4].ravel()), tuple(pose[10:12].ravel()), colEst, 5)
-                image_raw = cv2.line(image_raw, tuple(pose[4:6].ravel()), tuple(pose[12:14].ravel()), colEst, 5)
-                image_raw = cv2.line(image_raw, tuple(pose[6:8].ravel()), tuple(pose[14:16].ravel()), colEst, 5)
-                image_raw = cv2.line(image_raw, tuple(pose[8:10].ravel()), tuple(pose[10:12].ravel()), colEst,
-                                     5)
-                image_raw = cv2.line(image_raw, tuple(pose[10:12].ravel()), tuple(pose[12:14].ravel()), colEst,
-                                     5)
-                image_raw = cv2.line(image_raw, tuple(pose[12:14].ravel()), tuple(pose[14:16].ravel()), colEst,
-                                     5)
-                image_raw = cv2.line(image_raw, tuple(pose[14:16].ravel()), tuple(pose[8:10].ravel()), colEst,
-                                     5)
-                image_raw = image[1]
+                image_raw = image
                 colEst = (255, 0, 0)
                 image_raw = cv2.line(image_raw, tuple(pose[0:2].ravel()), tuple(pose[2:4].ravel()), colEst, 5)
                 image_raw = cv2.line(image_raw, tuple(pose[2:4].ravel()), tuple(pose[4:6].ravel()), colEst, 5)
@@ -204,26 +186,25 @@ def anchor_targets_bbox(
 
             regression_3D[index, :, :-1] = box3D_transform(anchors, calculated_boxes[argmax_overlaps_inds, :], num_classes)
 
-            # rind = np.random.randint(0, 1000)
-            # name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_RGB.jpg'
-            # cv2.imwrite(name, image[0] + 100)
+            #rind = np.random.randint(0, 1000)
+            #name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_RGB.jpg'
+            #cv2.imwrite(name, image + 100)
             # name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_DEP.jpg'
             # cv2.imwrite(name, image[1] + 100)
 
-            # mask_viz = mask_viz.reshape((image_shapes[0][0], image_shapes[0][1], 3))
-            # mask_viz = cv2.resize(mask_viz, (640, 480), interpolation=cv2.INTER_NEAREST)
-            # name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_MASK.jpg'
-            # cv2.imwrite(name, mask_viz)
+            #mask_viz = mask_viz.reshape((image_shapes[0][0], image_shapes[0][1], 3))
+            #mask_viz = cv2.resize(mask_viz, (640, 480), interpolation=cv2.INTER_NEAREST)
+            #name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_MASK.jpg'
+            #cv2.imwrite(name, mask_viz)
 
         # ignore annotations outside of image
-        #if image[0].shape:
-        #    anchors_centers = np.vstack([(anchors[:, 0] + anchors[:, 2]) / 2, (anchors[:, 1] + anchors[:, 3]) / 2]).T
-        #    indices = np.logical_or(anchors_centers[:, 0] >= image[0].shape[1],
-        #                            anchors_centers[:, 1] >= image[0].shape[0])
+        if image.shape:
+            anchors_centers = np.vstack([(anchors[:, 0] + anchors[:, 2]) / 2, (anchors[:, 1] + anchors[:, 3]) / 2]).T
+            indices = np.logical_or(anchors_centers[:, 0] >= image.shape[1],
+                                    anchors_centers[:, 1] >= image.shape[0])
 
-        #    labels_batch[index, indices, -1] = -1
-        #    regression_batch[index, indices, -1] = -1
-        #    regression_3D[index, indices, -1] = -1
+            labels_batch[index, indices, -1] = -1
+            regression_3D[index, indices, -1] = -1
 
     return regression_3D, labels_batch, mask_batch
 
