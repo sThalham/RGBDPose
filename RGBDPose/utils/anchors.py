@@ -50,8 +50,8 @@ AnchorParameters.default = AnchorParameters(
     #strides = [8, 16, 32, 64, 128],
     sizes   = [32],
     strides = [8],
-    ratios  = np.array([1], keras.backend.floatx()),
-    scales=np.array([1], keras.backend.floatx()),
+    ratios  = np.array([0.5, 1, 2], keras.backend.floatx()),
+    scales=np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)], keras.backend.floatx()),
 )
 
 
@@ -159,8 +159,8 @@ def anchor_targets_bbox(
                     mask_batch[index, anchors_spec, -1] = 1
                     # mask_viz[anchors_spec, :] = int(10*cls)
 
-                    regression_3D[index, anchors_spec, -1] = 1
-                    regression_3D[index, anchors_spec, :-1] = box3D_transform_Hu(box3D, num_classes)
+                    #regression_3D[index, anchors_spec, -1] = 1
+                    #regression_3D[index, anchors_spec, :-1] = box3D_transform_Hu(box3D, num_classes)
 
                 '''
                 pose = box3D.reshape((16)).astype(np.int16)
@@ -202,7 +202,7 @@ def anchor_targets_bbox(
                                      5)
                 '''
 
-            #regression_3D[index, :, :-1] = box3D_transform(anchors, calculated_boxes[argmax_overlaps_inds, :], num_classes)
+            regression_3D[index, :, :-1] = box3D_transform(anchors, calculated_boxes[argmax_overlaps_inds, :], num_classes)
 
             # rind = np.random.randint(0, 1000)
             # name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_RGB.jpg'
@@ -225,7 +225,7 @@ def anchor_targets_bbox(
         #    regression_batch[index, indices, -1] = -1
         #    regression_3D[index, indices, -1] = -1
 
-    return regression_3D, mask_batch
+    return regression_3D, labels_batch, mask_batch
 
 
 def compute_gt_annotations(
@@ -473,22 +473,22 @@ def box3D_transform(anchors, gt_boxes, num_classes, mean=None, std=None):
     anchor_widths  = anchors[:, 2] - anchors[:, 0]
     anchor_heights = anchors[:, 3] - anchors[:, 1]
 
-    targets_dx1 = (gt_boxes[0] - anchors[:, 0]) / anchor_widths
-    targets_dy1 = (gt_boxes[1] - anchors[:, 1]) / anchor_heights
-    targets_dx2 = (gt_boxes[2] - anchors[:, 2]) / anchor_widths
-    targets_dy2 = (gt_boxes[3] - anchors[:, 3]) / anchor_heights
-    targets_dx3 = (gt_boxes[4] - anchors[:, 0]) / anchor_widths
-    targets_dy3 = (gt_boxes[5] - anchors[:, 1]) / anchor_heights
-    targets_dx4 = (gt_boxes[6] - anchors[:, 2]) / anchor_widths
-    targets_dy4 = (gt_boxes[7] - anchors[:, 3]) / anchor_heights
-    targets_dx5 = (gt_boxes[8] - anchors[:, 0]) / anchor_widths
-    targets_dy5 = (gt_boxes[9] - anchors[:, 1]) / anchor_heights
-    targets_dx6 = (gt_boxes[10] - anchors[:, 2]) / anchor_widths
-    targets_dy6 = (gt_boxes[11] - anchors[:, 3]) / anchor_heights
-    targets_dx7 = (gt_boxes[12] - anchors[:, 0]) / anchor_widths
-    targets_dy7 = (gt_boxes[13] - anchors[:, 1]) / anchor_heights
-    targets_dx8 = (gt_boxes[14] - anchors[:, 2]) / anchor_widths
-    targets_dy8 = (gt_boxes[15] - anchors[:, 3]) / anchor_heights
+    targets_dx1 = (gt_boxes[:, 0] - anchors[:, 0]) / anchor_widths
+    targets_dy1 = (gt_boxes[:, 1] - anchors[:, 1]) / anchor_heights
+    targets_dx2 = (gt_boxes[:, 2] - anchors[:, 2]) / anchor_widths
+    targets_dy2 = (gt_boxes[:, 3] - anchors[:, 3]) / anchor_heights
+    targets_dx3 = (gt_boxes[:, 4] - anchors[:, 0]) / anchor_widths
+    targets_dy3 = (gt_boxes[:, 5] - anchors[:, 1]) / anchor_heights
+    targets_dx4 = (gt_boxes[:, 6] - anchors[:, 2]) / anchor_widths
+    targets_dy4 = (gt_boxes[:, 7] - anchors[:, 3]) / anchor_heights
+    targets_dx5 = (gt_boxes[:, 8] - anchors[:, 0]) / anchor_widths
+    targets_dy5 = (gt_boxes[:, 9] - anchors[:, 1]) / anchor_heights
+    targets_dx6 = (gt_boxes[:, 10] - anchors[:, 2]) / anchor_widths
+    targets_dy6 = (gt_boxes[:, 11] - anchors[:, 3]) / anchor_heights
+    targets_dx7 = (gt_boxes[:, 12] - anchors[:, 0]) / anchor_widths
+    targets_dy7 = (gt_boxes[:, 13] - anchors[:, 1]) / anchor_heights
+    targets_dx8 = (gt_boxes[:, 14] - anchors[:, 2]) / anchor_widths
+    targets_dy8 = (gt_boxes[:, 15] - anchors[:, 3]) / anchor_heights
 
     targets = np.stack((targets_dx1, targets_dy1, targets_dx2, targets_dy2, targets_dx3, targets_dy3, targets_dx4, targets_dy4, targets_dx5, targets_dy5, targets_dx6, targets_dy6, targets_dx7, targets_dy7, targets_dx8, targets_dy8))
     targets = targets.T

@@ -86,6 +86,89 @@ def hu_classification_model(
 
     outputs = keras.layers.Activation('sigmoid')(outputs)
 
+    return keras.models.Model(inputs=inputs, outputs=outputs, name='cls')  # , name=name)
+
+
+def hu_mask_model(
+        num_classes,
+        num_anchors):
+
+    options1 = {
+        'kernel_size': 1,
+        'strides': 1,
+        'padding': 'same',
+        'kernel_initializer': keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+        'bias_initializer': 'zeros',
+        'kernel_regularizer' : keras.regularizers.l2(0.001),
+    }
+    options3 = {
+        'kernel_size': 3,
+        'strides': 1,
+        'padding': 'same',
+        'kernel_initializer': keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+        'bias_initializer': 'zeros',
+        'kernel_regularizer' : keras.regularizers.l2(0.001),
+    }
+
+    if keras.backend.image_data_format() == 'channels_first':
+        inputs_P5 = keras.layers.Input(shape=(512, None, None))
+        inputs_P4 = keras.layers.Input(shape=(256, None, None))
+        inputs_P3 = keras.layers.Input(shape=(128, None, None))
+        # inputs_P2 = keras.layers.Input(shape=(64, None, None))
+    else:
+        inputs_P5 = keras.layers.Input(shape=(15, 20, 2048))
+        inputs_P4 = keras.layers.Input(shape=(30, 40, 1024))
+        inputs_P3 = keras.layers.Input(shape=(60, 80, 512))
+        # inputs_P2 = keras.layers.Input(shape=(None, None, 64))
+
+    inputs = [inputs_P3, inputs_P4, inputs_P5]
+
+    D5 = keras.layers.Conv2D(512, **options1)(inputs_P5)
+    D5 = keras.layers.LeakyReLU(alpha=0.1)(D5)
+    D5 = keras.layers.Conv2D(1024, **options3)(D5)
+    D5 = keras.layers.LeakyReLU(alpha=0.1)(D5)
+    D5 = keras.layers.Conv2D(512, **options1)(D5)
+    D5 = keras.layers.LeakyReLU(alpha=0.1)(D5)
+    D5 = keras.layers.Conv2D(1024, **options3)(D5)
+    D5 = keras.layers.LeakyReLU(alpha=0.1)(D5)
+    D5 = keras.layers.Conv2D(512, **options1)(D5)
+    D5 = keras.layers.LeakyReLU(alpha=0.1)(D5)
+    D5_up = keras.layers.Conv2DTranspose(1024, kernel_size=2, strides=2, padding='valid')(D5)
+    D4 = keras.layers.Add()([D5_up, inputs_P4])
+
+    D4 = keras.layers.Conv2D(256, **options1)(D4)
+    D4 = keras.layers.LeakyReLU(alpha=0.1)(D4)
+    D4 = keras.layers.Conv2D(512, **options3)(D4)
+    D4 = keras.layers.LeakyReLU(alpha=0.1)(D4)
+    D4 = keras.layers.Conv2D(256,  **options1)(D4)
+    D4 = keras.layers.LeakyReLU(alpha=0.1)(D4)
+    D4 = keras.layers.Conv2D(512, **options3)(D4)
+    D4 = keras.layers.LeakyReLU(alpha=0.1)(D4)
+    D4 = keras.layers.Conv2D(128, **options1)(D4)
+    D4 = keras.layers.LeakyReLU(alpha=0.1)(D4)
+    D4_up = keras.layers.Conv2DTranspose(512, kernel_size=2, strides=2, padding='valid')(D4)
+    D3 = keras.layers.Add()([D4_up, inputs_P3])
+
+    D3 = keras.layers.Conv2D(128, **options1)(D3)
+    D3 = keras.layers.LeakyReLU(alpha=0.1)(D3)
+    D3 = keras.layers.Conv2D(256, **options3)(D3)
+    D3 = keras.layers.LeakyReLU(alpha=0.1)(D3)
+    D3 = keras.layers.Conv2D(128, **options1)(D3)
+    D3 = keras.layers.LeakyReLU(alpha=0.1)(D3)
+    D3 = keras.layers.Conv2D(256, **options3)(D3)
+    D3 = keras.layers.LeakyReLU(alpha=0.1)(D3)
+    D3 = keras.layers.Conv2D(128, **options1)(D3)
+    D3 = keras.layers.LeakyReLU(alpha=0.1)(D3)
+    D3 = keras.layers.Conv2D(256, **options1)(D3)
+    D3 = keras.layers.LeakyReLU(alpha=0.1)(D3)
+    outputs = keras.layers.Conv2D(filters=num_classes, **options1)(D3)
+
+    if keras.backend.image_data_format() == 'channels_first':
+        outputs = keras.layers.Permute((2, 3, 1))(outputs)
+    outputs = keras.layers.Reshape((-1, num_classes))(outputs)
+
+    outputs = keras.layers.Activation('sigmoid')(outputs)
+
     return keras.models.Model(inputs=inputs, outputs=outputs, name='seg')  # , name=name)
 
 
@@ -165,17 +248,20 @@ def default_submodels(num_classes, num_anchors):
     return [
         (hu_regression_model(16, num_anchors)),
         (hu_classification_model(num_classes, num_anchors)),
+        (hu_mask_model(num_classes, num_anchors)),
     ]
 
 
 def __build_pyramid(models, features):
     model_hyp = models[0]
-    model_seg = models[1]
+    model_cls = models[1]
+    model_mask = models[2]
 
     models_hyp = model_hyp(features)
-    models_seg = model_seg(features)
+    models_cls = model_cls(features)
+    models_mask = model_mask(features)
 
-    return [models_hyp, models_seg]
+    return [models_hyp, models_cls, models_mask]
 
 
 def __build_anchors(anchor_parameters, features):
@@ -236,8 +322,9 @@ def retinanet_bbox(
 
     regression3D = model.outputs[0]
     classification = model.outputs[1]
-    other = model.outputs[2:]
+    mask = model.outputs[2]
+    other = model.outputs[3:]
 
     boxes3D = layers.RegressBoxes3D(name='boxes3D')([anchors, regression3D])
 
-    return keras.models.Model(inputs=model.inputs, outputs=[boxes3D, classification], name=name)
+    return keras.models.Model(inputs=model.inputs, outputs=[boxes3D, classification, mask], name=name)
