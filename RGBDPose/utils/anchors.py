@@ -50,7 +50,7 @@ AnchorParameters.default = AnchorParameters(
     #strides = [8, 16, 32, 64, 128],
     sizes   = [32],
     strides = [8],
-    ratios  = np.array([0.5, 1, 2], keras.backend.floatx()),
+    ratios  = np.array([0.5, 1, 2, 4], keras.backend.floatx()),
     scales=np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)], keras.backend.floatx()),
 )
 
@@ -312,12 +312,14 @@ def anchors_for_shape(
     # compute anchors over all pyramid levels
     all_anchors = np.zeros((0, 4))
     for idx, p in enumerate(pyramid_levels):
+    #for idx in range(3):
         anchors = generate_anchors(
             base_size=anchor_params.sizes[idx],
             ratios=anchor_params.ratios,
             scales=anchor_params.scales
         )
         shifted_anchors = shift(image_shapes[idx], anchor_params.strides[idx], anchors)
+        #shifted_anchors = shift(image_shapes[0], anchor_params.strides[idx], anchors)
         all_anchors     = np.append(all_anchors, shifted_anchors, axis=0)
 
     return all_anchors
