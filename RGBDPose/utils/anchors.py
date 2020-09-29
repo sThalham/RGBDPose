@@ -50,8 +50,8 @@ AnchorParameters.default = AnchorParameters(
     #strides = [8, 16, 32, 64, 128],
     sizes   = [32],
     strides = [8],
-    ratios  = np.array([0.5, 1, 2, 4], keras.backend.floatx()),
-    scales=np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)], keras.backend.floatx()),
+    ratios  = np.array([0.5, 1, 2], keras.backend.floatx()),
+    scales=np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0), 2 ** 1, 2 ** (4.0 / 3.0), 2 ** (5.0 / 3.0), 2 ** 2.0], keras.backend.floatx()),
 )
 
 
@@ -105,12 +105,15 @@ def anchor_targets_bbox(
         image_shapes = guess_shapes(image.shape[:2], pyramid_levels)
         #mask_viz = cv2.resize(image, (image_shapes[0][1], image_shapes[0][0])).reshape((image_shapes[0][1] * image_shapes[0][0], 3))
 
-        # image_raw = image[0]
-        # sca = 256.0 / (np.nanmax(image_raw) - np.nanmin(image_raw))
-        # image_raw -= np.nanmin(image_raw)
-        # image_raw = (image_raw * sca).astype(np.uint8)
-        # rind = np.random.randint(0, 1000)
-        # viz_img = False
+        image_raw = image
+        image_raw[..., 0] += 103.939
+        image_raw[..., 1] += 116.779
+        image_raw[..., 2] += 123.68
+        #print('anew')
+
+        #image_raw = image_raw.astype(np.uint8)
+        #viz_img = False
+        #rind = np.random.randint(0, 1000)
 
         if annotations['bboxes'].shape[0]:
             # obtain indices of gt annotations with the greatest overlap
@@ -183,14 +186,36 @@ def anchor_targets_bbox(
                 image_raw = cv2.line(image_raw, tuple(pose[14:16].ravel()), tuple(pose[8:10].ravel()), colEst,
                                      5)
                 '''
-
+                '''
+                cls_ind = np.where(annotations['labels']==cls) # index of cls
+                if not len(cls_ind[0]) == 0:
+                    viz_img = True
+                    ov_laps = argmax_overlaps_inds #cls index overlap per anchor location?
+                    am_laps = positive_indices
+                    ov_laps = ov_laps[am_laps]
+                    pru_anc = anchors[am_laps, :]
+                    anc_idx = ov_laps == cls_ind
+                    true_anchors = pru_anc[anc_idx[0,:], :]
+                    for jdx in range(true_anchors.shape[0]):
+                        bb = true_anchors[jdx, :]
+                        #print(bb)
+                        cv2.rectangle(image_raw, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])),
+                                   (255, 255, 255), 2)
+                        #cv2.rectangle(image_raw, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])),
+                        #              (255, 0, 0), 1)
+                        #image_crop = image[0][int(bb[1]):int(bb[3]), int(bb[0]):int(bb[2]), :]
+                        #name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_' + str(cls) + '_' + str(jdx) + '_crop.jpg'
+                        #cv2.imwrite(name, image_crop)
+                if viz_img == True:
+                    #image_raw = image_raw[int(np.nanmin(true_anchors[:, 0])):int(np.nanmin(true_anchors[:, 1])), int(np.nanmax(true_anchors[:, 2])):int(np.nanmax(true_anchors[:, 3])), :]
+                    name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_RGB.jpg'
+                    cv2.imwrite(name, image_raw)
+                '''
             regression_3D[index, :, :-1] = box3D_transform(anchors, calculated_boxes[argmax_overlaps_inds, :], num_classes)
 
             #rind = np.random.randint(0, 1000)
             #name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_RGB.jpg'
-            #cv2.imwrite(name, image + 100)
-            # name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_DEP.jpg'
-            # cv2.imwrite(name, image[1] + 100)
+            #cv2.imwrite(name, image)
 
             #mask_viz = mask_viz.reshape((image_shapes[0][0], image_shapes[0][1], 3))
             #mask_viz = cv2.resize(mask_viz, (640, 480), interpolation=cv2.INTER_NEAREST)
