@@ -257,35 +257,35 @@ def default_classification_model(
     }
 
     if keras.backend.image_data_format() == 'channels_first':
-        inputs_P5 = keras.layers.Input(shape=(512, None, None))
-        inputs_P4 = keras.layers.Input(shape=(256, None, None))
-        inputs_P3 = keras.layers.Input(shape=(128, None, None))
+        inputs_P5 = keras.layers.Input(shape=(1024, None, None))
+        inputs_P4 = keras.layers.Input(shape=(512, None, None))
+        inputs_P3 = keras.layers.Input(shape=(256, None, None))
         # inputs_P2 = keras.layers.Input(shape=(64, None, None))
     else:
-        inputs_P5 = keras.layers.Input(shape=(15, 20, 512))
-        inputs_P4 = keras.layers.Input(shape=(30, 40, 256))
-        inputs_P3 = keras.layers.Input(shape=(60, 80, 128))
+        inputs_P5 = keras.layers.Input(shape=(15, 20, 1024))
+        inputs_P4 = keras.layers.Input(shape=(30, 40, 512))
+        inputs_P3 = keras.layers.Input(shape=(60, 80, 256))
         # inputs_P2 = keras.layers.Input(shape=(None, None, 64))
 
     inputs = [inputs_P3, inputs_P4, inputs_P5]
 
-    D5 = keras.layers.Conv2D(512, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    D5 = keras.layers.Conv2D(1024, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
         bias_initializer='zeros', **options3)(inputs_P5)
-    D5 = keras.layers.Conv2D(512, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
-        bias_initializer='zeros', **options3)(D5)
-    D5_up = keras.layers.Conv2DTranspose(256, kernel_size=2, strides=2, padding='valid')(D5)
+    #D5 = keras.layers.Conv2D(512, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    #    bias_initializer='zeros', **options3)(D5)
+    D5_up = keras.layers.Conv2DTranspose(512, kernel_size=2, strides=2, padding='valid')(D5)
     D4 = keras.layers.Add()([D5_up, inputs_P4])
 
-    D4 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    D4 = keras.layers.Conv2D(512, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
         bias_initializer='zeros', **options3)(D4)
-    D4 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
-        bias_initializer='zeros', **options3)(D4)
-    D4_up = keras.layers.Conv2DTranspose(128, kernel_size=2, strides=2, padding='valid')(D4)
+    #D4 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    #    bias_initializer='zeros', **options3)(D4)
+    D4_up = keras.layers.Conv2DTranspose(256, kernel_size=2, strides=2, padding='valid')(D4)
     D3 = keras.layers.Add()([D4_up, inputs_P3])
 
-    D3 = keras.layers.Conv2D(128, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    D3 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
         bias_initializer='zeros', **options3)(D3)
-    D3 = keras.layers.Conv2D(128, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    D3 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
         bias_initializer='zeros', **options3)(D3)
 
     outputs = keras.layers.Conv2D(filters=num_classes * num_anchors,kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
@@ -313,35 +313,35 @@ def default_mask_model(
     }
 
     if keras.backend.image_data_format() == 'channels_first':
-        inputs_P5 = keras.layers.Input(shape=(512, None, None))
-        inputs_P4 = keras.layers.Input(shape=(256, None, None))
-        inputs_P3 = keras.layers.Input(shape=(128, None, None))
+        inputs_P5 = keras.layers.Input(shape=(1024, None, None))
+        inputs_P4 = keras.layers.Input(shape=(512, None, None))
+        inputs_P3 = keras.layers.Input(shape=(256, None, None))
         # inputs_P2 = keras.layers.Input(shape=(64, None, None))
     else:
-        inputs_P5 = keras.layers.Input(shape=(15, 20, 512))
-        inputs_P4 = keras.layers.Input(shape=(30, 40, 256))
-        inputs_P3 = keras.layers.Input(shape=(60, 80, 128))
+        inputs_P5 = keras.layers.Input(shape=(15, 20, 1024))
+        inputs_P4 = keras.layers.Input(shape=(30, 40, 512))
+        inputs_P3 = keras.layers.Input(shape=(60, 80, 256))
         # inputs_P2 = keras.layers.Input(shape=(None, None, 64))
 
     inputs = [inputs_P3, inputs_P4, inputs_P5]
 
-    D5 = keras.layers.Conv2D(512, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    D5 = keras.layers.Conv2D(1024, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
         bias_initializer='zeros', **options3)(inputs_P5)
-    D5 = keras.layers.Conv2D(512, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
-        bias_initializer='zeros', **options3)(D5)
-    D5_up = keras.layers.Conv2DTranspose(256, kernel_size=2, strides=2, padding='valid')(D5)
+    #D5 = keras.layers.Conv2D(512, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    #    bias_initializer='zeros', **options3)(D5)
+    D5_up = keras.layers.Conv2DTranspose(512, kernel_size=2, strides=2, padding='valid')(D5)
     D4 = keras.layers.Add()([D5_up, inputs_P4])
 
-    D4 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    D4 = keras.layers.Conv2D(512, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
         bias_initializer='zeros', **options3)(D4)
-    D4 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
-        bias_initializer='zeros', **options3)(D4)
-    D4_up = keras.layers.Conv2DTranspose(128, kernel_size=2, strides=2, padding='valid')(D4)
+    #D4 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    #    bias_initializer='zeros', **options3)(D4)
+    D4_up = keras.layers.Conv2DTranspose(256, kernel_size=2, strides=2, padding='valid')(D4)
     D3 = keras.layers.Add()([D4_up, inputs_P3])
 
-    D3 = keras.layers.Conv2D(128, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    D3 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
         bias_initializer='zeros', **options3)(D3)
-    D3 = keras.layers.Conv2D(128, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+    D3 = keras.layers.Conv2D(256, activation='relu',kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
         bias_initializer='zeros', **options3)(D3)
 
     outputs = keras.layers.Conv2D(filters=num_classes,kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
@@ -367,30 +367,30 @@ def default_regression_model(num_values, num_anchors):
     }
 
     if keras.backend.image_data_format() == 'channels_first':
-        inputs_P5 = keras.layers.Input(shape=(512, None, None))
-        inputs_P4 = keras.layers.Input(shape=(256, None, None))
-        inputs_P3 = keras.layers.Input(shape=(128, None, None))
+        inputs_P5 = keras.layers.Input(shape=(1024, None, None))
+        inputs_P4 = keras.layers.Input(shape=(512, None, None))
+        inputs_P3 = keras.layers.Input(shape=(256, None, None))
         # inputs_P2 = keras.layers.Input(shape=(64, None, None))
     else:
-        inputs_P5 = keras.layers.Input(shape=(15, 20, 512))
-        inputs_P4 = keras.layers.Input(shape=(30, 40, 256))
-        inputs_P3 = keras.layers.Input(shape=(60, 80, 128))
+        inputs_P5 = keras.layers.Input(shape=(15, 20, 1024))
+        inputs_P4 = keras.layers.Input(shape=(30, 40, 512))
+        inputs_P3 = keras.layers.Input(shape=(60, 80, 256))
         # inputs_P2 = keras.layers.Input(shape=(None, None, 64))
 
     inputs = [inputs_P3, inputs_P4, inputs_P5]
 
-    D5 = keras.layers.Conv2D(512, activation='relu', **options3)(inputs_P5)
-    D5 = keras.layers.Conv2D(512, activation='relu', **options3)(D5)
-    D5_up = keras.layers.Conv2DTranspose(256, kernel_size=2, strides=2, padding='valid')(D5)
+    D5 = keras.layers.Conv2D(1024, activation='relu', **options3)(inputs_P5)
+    #D5 = keras.layers.Conv2D(512, activation='relu', **options3)(D5)
+    D5_up = keras.layers.Conv2DTranspose(512, kernel_size=2, strides=2, padding='valid')(D5)
     D4 = keras.layers.Add()([D5_up, inputs_P4])
 
-    D4 = keras.layers.Conv2D(256, activation='relu', **options3)(D4)
-    D4 = keras.layers.Conv2D(256, activation='relu', **options3)(D4)
-    D4_up = keras.layers.Conv2DTranspose(128, kernel_size=2, strides=2, padding='valid')(D4)
+    D4 = keras.layers.Conv2D(512, activation='relu', **options3)(D4)
+    #D4 = keras.layers.Conv2D(256, activation='relu', **options3)(D4)
+    D4_up = keras.layers.Conv2DTranspose(256, kernel_size=2, strides=2, padding='valid')(D4)
     D3 = keras.layers.Add()([D4_up, inputs_P3])
 
-    D3 = keras.layers.Conv2D(128, activation='relu', **options3)(D3)
-    D3 = keras.layers.Conv2D(128, activation='relu', **options3)(D3)
+    D3 = keras.layers.Conv2D(256, activation='relu', **options3)(D3)
+    D3 = keras.layers.Conv2D(256, activation='relu', **options3)(D3)
 
     outputs = keras.layers.Conv2D(filters=num_values * num_anchors, **options3)(D3)
     if keras.backend.image_data_format() == 'channels_first':
@@ -455,9 +455,9 @@ def retinanet(
 
     C3, C4, C5 = backbone_layers
 
-    C3 = keras.layers.Conv2D(128, kernel_size=1, strides=1, padding='same', name='P3')(C3)
-    C4 = keras.layers.Conv2D(256, kernel_size=1, strides=1, padding='same', name='P4')(C4)
-    C5 = keras.layers.Conv2D(512, kernel_size=1, strides=1, padding='same', name='P5')(C5)
+    C3 = keras.layers.Conv2D(256, kernel_size=1, strides=1, padding='same', name='P3')(C3)
+    C4 = keras.layers.Conv2D(512, kernel_size=1, strides=1, padding='same', name='P4')(C4)
+    C5 = keras.layers.Conv2D(1024, kernel_size=1, strides=1, padding='same', name='P5')(C5)
 
     pyramids = __build_pyramid(submodels, [C3, C4, C5])
 

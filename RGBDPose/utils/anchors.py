@@ -106,10 +106,10 @@ def anchor_targets_bbox(
         image_shapes = guess_shapes(image.shape[:2], pyramid_levels)
         #mask_viz = cv2.resize(image, (image_shapes[0][1], image_shapes[0][0])).reshape((image_shapes[0][1] * image_shapes[0][0], 3))
 
-        image_raw = image
-        image_raw[..., 0] += 103.939
-        image_raw[..., 1] += 116.779
-        image_raw[..., 2] += 123.68
+        #image_raw = image
+        #image_raw[..., 0] += 103.939
+        #image_raw[..., 1] += 116.779
+        #image_raw[..., 2] += 123.68
         #print('anew')
 
         #image_raw = image_raw.astype(np.uint8)
@@ -188,7 +188,7 @@ def anchor_targets_bbox(
                                      5)
                 '''
                 '''
-                cls_ind = np.where(annotations['labels']==cls) # index of cls
+                cls_ind = np.where(annotations['labels']==5) # index of cls
                 if not len(cls_ind[0]) == 0:
                     viz_img = True
                     ov_laps = argmax_overlaps_inds #cls index overlap per anchor location?
@@ -211,7 +211,10 @@ def anchor_targets_bbox(
                     #image_raw = image_raw[int(np.nanmin(true_anchors[:, 0])):int(np.nanmin(true_anchors[:, 1])), int(np.nanmax(true_anchors[:, 2])):int(np.nanmax(true_anchors[:, 3])), :]
                     name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_RGB.jpg'
                     cv2.imwrite(name, image_raw)
+                    name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_Rref.jpg'
+                    cv2.imwrite(name, image)
                 '''
+
             regression_3D[index, :, :-1] = box3D_transform(anchors, calculated_boxes[argmax_overlaps_inds, :], num_classes)
 
             #rind = np.random.randint(0, 1000)
