@@ -451,13 +451,13 @@ def retinanet(
         num_anchors = AnchorParameters.default.num_anchors()
 
     if submodels is None:
-        submodels = default_submodels(num_classes, num_anchors)
+        submodels = hu_submodels(num_classes, num_anchors)
 
     C3, C4, C5 = backbone_layers
 
-    C3 = keras.layers.Conv2D(256, kernel_size=1, strides=1, padding='same', name='P3')(C3)
-    C4 = keras.layers.Conv2D(512, kernel_size=1, strides=1, padding='same', name='P4')(C4)
-    C5 = keras.layers.Conv2D(1024, kernel_size=1, strides=1, padding='same', name='P5')(C5)
+    #C3 = keras.layers.Conv2D(256, kernel_size=1, strides=1, padding='same', name='P3')(C3)
+    #C4 = keras.layers.Conv2D(512, kernel_size=1, strides=1, padding='same', name='P4')(C4)
+    #C5 = keras.layers.Conv2D(1024, kernel_size=1, strides=1, padding='same', name='P5')(C5)
 
     pyramids = __build_pyramid(submodels, [C3, C4, C5])
 
