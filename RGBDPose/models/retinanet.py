@@ -418,7 +418,7 @@ def default_regression_model(num_values, num_anchors):
 def default_submodels(num_classes, num_anchors):
     return [
         (default_regression_model(16, num_anchors)),
-        (default_classification_model(num_classes, num_anchors)),
+        #(default_classification_model(num_classes, num_anchors)),
         (default_mask_model(num_classes, num_anchors)),
     ]
 
@@ -433,14 +433,15 @@ def hu_submodels(num_classes, num_anchors):
 
 def __build_pyramid(models, features):
     model_hyp = models[0]
-    model_cls = models[1]
-    model_mask = models[2]
+    #model_cls = models[1]
+    model_mask = models[1]
 
     models_hyp = model_hyp(features)
-    models_cls = model_cls(features)
+    #models_cls = model_cls(features)
     models_mask = model_mask(features)
 
-    return [models_hyp, models_cls, models_mask]
+    #return [models_hyp, models_cls, models_mask]
+    return [models_hyp, models_mask]
 
 
 def __build_anchors(anchor_parameters, features):
@@ -504,10 +505,9 @@ def retinanet_bbox(
     anchors = __build_anchors(anchor_params, features)
 
     regression3D = model.outputs[0]
-    classification = model.outputs[1]
-    mask = model.outputs[2]
-    other = model.outputs[3:]
+    #classification = model.outputs[1]
+    mask = model.outputs[1]
 
     boxes3D = layers.RegressBoxes3D(name='boxes3D')([anchors, regression3D])
 
-    return keras.models.Model(inputs=model.inputs, outputs=[boxes3D, classification, mask], name=name)
+    return keras.models.Model(inputs=model.inputs, outputs=[boxes3D, mask], name=name)

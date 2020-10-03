@@ -118,20 +118,20 @@ def anchor_targets_bbox(
 
         if annotations['bboxes'].shape[0]:
             # obtain indices of gt annotations with the greatest overlap
-            positive_indices, ignore_indices, argmax_overlaps_inds = compute_gt_annotations(anchors,
-                                                                                            annotations['bboxes'],
-                                                                                            negative_overlap,
-                                                                                            positive_overlap)
+            #positive_indices, ignore_indices, argmax_overlaps_inds = compute_gt_annotations(anchors,
+            #                                                                                annotations['bboxes'],
+            #                                                                                negative_overlap,
+            #                                                                                positive_overlap)
 
-            labels_batch[index, ignore_indices, -1] = -1
-            labels_batch[index, positive_indices, -1] = 1
+            #labels_batch[index, ignore_indices, -1] = -1
+            #labels_batch[index, positive_indices, -1] = 1
 
-            regression_3D[index, ignore_indices, -1] = -1
-            regression_3D[index, positive_indices, -1] = 1
+            #regression_3D[index, ignore_indices, -1] = -1
+            #regression_3D[index, positive_indices, -1] = 1
 
             # compute target class labels
-            labels_batch[
-                index, positive_indices, annotations['labels'][argmax_overlaps_inds[positive_indices]].astype(int)] = 1
+            #labels_batch[
+            #    index, positive_indices, annotations['labels'][argmax_overlaps_inds[positive_indices]].astype(int)] = 1
 
             calculated_boxes = np.empty((0, 16))
             for idx, pose in enumerate(annotations['poses']):
@@ -163,8 +163,8 @@ def anchor_targets_bbox(
                     mask_batch[index, anchors_spec, -1] = 1
                     #mask_viz[anchors_spec, :] = int(17*cls)
 
-                    #regression_3D[index, anchors_spec, -1] = 1
-                    #regression_3D[index, anchors_spec, :-1] = box3D_transform_Hu(box3D, num_classes)
+                    regression_3D[index, anchors_spec, -1] = 1
+                    regression_3D[index, anchors_spec, :-1] = box3D_transform_Hu(box3D, num_classes)
 
                 '''
                 pose = box3D.reshape((16)).astype(np.int16)
@@ -215,7 +215,7 @@ def anchor_targets_bbox(
                     cv2.imwrite(name, image)
                 '''
 
-            regression_3D[index, :, :-1] = box3D_transform(anchors, calculated_boxes[argmax_overlaps_inds, :], num_classes)
+            #regression_3D[index, :, :-1] = box3D_transform(anchors, calculated_boxes[argmax_overlaps_inds, :], num_classes)
 
             #rind = np.random.randint(0, 1000)
             #name = '/home/stefan/RGBDPose_viz/anno_' + str(rind) + '_RGB.jpg'
@@ -227,15 +227,15 @@ def anchor_targets_bbox(
             #cv2.imwrite(name, mask_viz)
 
         # ignore annotations outside of image
-        if image.shape:
-            anchors_centers = np.vstack([(anchors[:, 0] + anchors[:, 2]) / 2, (anchors[:, 1] + anchors[:, 3]) / 2]).T
-            indices = np.logical_or(anchors_centers[:, 0] >= image.shape[1],
-                                    anchors_centers[:, 1] >= image.shape[0])
+        #if image.shape:
+        #    anchors_centers = np.vstack([(anchors[:, 0] + anchors[:, 2]) / 2, (anchors[:, 1] + anchors[:, 3]) / 2]).T
+        #    indices = np.logical_or(anchors_centers[:, 0] >= image.shape[1],
+        #                            anchors_centers[:, 1] >= image.shape[0])
 
-            labels_batch[index, indices, -1] = -1
-            regression_3D[index, indices, -1] = -1
+        #    labels_batch[index, indices, -1] = -1
+        #    regression_3D[index, indices, -1] = -1
 
-    return regression_3D, labels_batch, mask_batch
+    return regression_3D, mask_batch
 
 
 def compute_gt_annotations(
@@ -426,7 +426,7 @@ def box3D_transform_Hu(gt_boxes, num_classes, mean=None, std=None):
     if mean is None:
         mean = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
     if std is None:
-        std = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        std = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
 
     if isinstance(mean, (list, tuple)):
         mean = np.array(mean)
