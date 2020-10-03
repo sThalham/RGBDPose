@@ -407,10 +407,15 @@ def default_regression_model(num_values, num_anchors):
     D3 = keras.layers.Conv2D(256, activation='relu', **options3)(D3)
     D3 = keras.layers.Conv2D(256, activation='relu', **options3)(D3)
 
-    outputs = keras.layers.Conv2D(filters=num_values * num_anchors, **options3)(D3)
+    outputs = keras.layers.Conv2D(filters=num_values, **options3)(D3)
     if keras.backend.image_data_format() == 'channels_first':
         outputs = keras.layers.Permute((2, 3, 1))(outputs)
     outputs = keras.layers.Reshape((-1, num_values))(outputs)
+
+    #outputs = keras.layers.Conv2D(filters=num_values * num_anchors, **options3)(D3)
+    #if keras.backend.image_data_format() == 'channels_first':
+    #    outputs = keras.layers.Permute((2, 3, 1))(outputs)
+    #outputs = keras.layers.Reshape((-1, num_values))(outputs)
 
     return keras.models.Model(inputs=inputs, outputs=outputs, name='hyp')  # , name=name)
 
