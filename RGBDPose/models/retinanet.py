@@ -236,7 +236,7 @@ def hu_regression_model(num_values, num_anchors):
     D3 = keras.layers.Conv2D(256, **options1)(D3)
     D3 = keras.layers.LeakyReLU(alpha=0.1)(D3)
 
-    outputs = keras.layers.Conv2D(filters=num_values * num_anchors, **options1)(D3)
+    outputs = keras.layers.Conv2D(filters=num_values, **options1)(D3)
     if keras.backend.image_data_format() == 'channels_first':
         outputs = keras.layers.Permute((2, 3, 1))(outputs)
     outputs = keras.layers.Reshape((-1, num_values))(outputs)
@@ -431,7 +431,7 @@ def default_submodels(num_classes, num_anchors):
 def hu_submodels(num_classes, num_anchors):
     return [
         (hu_regression_model(16, num_anchors)),
-        (hu_classification_model(num_classes, num_anchors)),
+        #(hu_classification_model(num_classes, num_anchors)),
         (hu_mask_model(num_classes, num_anchors)),
     ]
 
@@ -472,13 +472,13 @@ def retinanet(
         num_anchors = AnchorParameters.default.num_anchors()
 
     if submodels is None:
-        submodels = default_submodels(num_classes, num_anchors)
+        submodels = hu_submodels(num_classes, num_anchors)
 
     C3, C4, C5 = backbone_layers
 
-    C3 = keras.layers.Conv2D(256, kernel_size=1, strides=1, padding='same', name='P3')(C3)
-    C4 = keras.layers.Conv2D(512, kernel_size=1, strides=1, padding='same', name='P4')(C4)
-    C5 = keras.layers.Conv2D(1024, kernel_size=1, strides=1, padding='same', name='P5')(C5)
+    #C3 = keras.layers.Conv2D(256, kernel_size=1, strides=1, padding='same', name='P3')(C3)
+    #C4 = keras.layers.Conv2D(512, kernel_size=1, strides=1, padding='same', name='P4')(C4)
+    #C5 = keras.layers.Conv2D(1024, kernel_size=1, strides=1, padding='same', name='P5')(C5)
 
     pyramids = __build_pyramid(submodels, [C3, C4, C5])
 
