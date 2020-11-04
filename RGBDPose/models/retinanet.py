@@ -396,13 +396,16 @@ def retinanet_bbox(
     features = [model.get_layer(p_name).output for p_name in ['P3', 'P4', 'P5']]
     anchors = __build_anchors(anchor_params, features)
 
+    print('outputs: ', model.outputs)
     regression3D = model.outputs[0]
-    classification = model.outputs[1]
-    mask = model.outputs[2]
+    regression_ref = model.outputs[1]
+    classification = model.outputs[2]
+    mask = model.outputs[3]
     #other = model.outputs[3:]
 
     boxes3D = layers.RegressBoxes3D(name='boxes3D')([anchors, regression3D])
+    boxes3D_ref = layers.RegressBoxes3D(name='refine3D')([anchors, regression_ref])
 
     # construct the model
     #return keras.models.Model(inputs=model.inputs, outputs=detections, name=name)
-    return keras.models.Model(inputs=model.inputs, outputs=[boxes3D, classification, mask], name=name)
+    return keras.models.Model(inputs=model.inputs, outputs=[boxes3D, boxes3D_ref, classification, mask], name=name)

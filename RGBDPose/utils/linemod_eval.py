@@ -261,6 +261,8 @@ def evaluate_linemod(generator, model, threshold=0.05):
     falsePoses = np.zeros((16), dtype=np.uint32)
     trueDets = np.zeros((16), dtype=np.uint32)
 
+    truePoses_ref = np.zeros((16), dtype=np.uint32)
+
     for index in progressbar.progressbar(range(generator.size()), prefix='LineMOD evaluation: '):
         image_raw = generator.load_image(index)
         image = generator.preprocess_image(image_raw)
@@ -302,14 +304,14 @@ def evaluate_linemod(generator, model, threshold=0.05):
         #    t_tra = anno['poses'][0][:3]
         #    t_rot = anno['poses'][0][3:]
 
-        if anno['labels'][0] != 13:
-            continue
+        #if anno['labels'][0] != 13:
+        #    continue
 
         # run network
         images = []
         images.append(image)
         images.append(image_dep)
-        boxes3D, scores, mask = model.predict_on_batch(np.expand_dims(image, axis=0))#, np.expand_dims(image_dep, axis=0)])
+        boxes3D, boxes3D_ref, scores, mask = model.predict_on_batch(np.expand_dims(image, axis=0))#, np.expand_dims(image_dep, axis=0)])
 
         for inv_cls in range(scores.shape[2]):
 
@@ -601,6 +603,72 @@ def evaluate_linemod(generator, model, threshold=0.05):
             image_raw = cv2.line(image_raw, tuple(pose[14:16].ravel()), tuple(pose[8:10].ravel()), colEst,
                              2)
 
+
+
+
+            #####################
+            #check refinement
+
+            pose_votes = boxes3D_ref[0, cls_indices, :]
+            ref_points = np.ascontiguousarray(pose_votes, dtype=np.float32).reshape((int(k_hyp * 8), 1, 2))
+            obj_points = np.repeat(ori_points[np.newaxis, :, :], k_hyp, axis=0)
+            obj_points = obj_points.reshape((int(k_hyp * 8), 1, 3))
+
+            retval, orvec, otvec, inliers = cv2.solvePnPRansac(objectPoints=obj_points,
+                                                               imagePoints=ref_points, cameraMatrix=K,
+                                                               distCoeffs=None, rvec=None, tvec=None,
+                                                               useExtrinsicGuess=False, iterationsCount=300,
+                                                               reprojectionError=5.0, confidence=0.99,
+                                                               flags=cv2.SOLVEPNP_ITERATIVE)
+            R_ref, _ = cv2.Rodrigues(orvec)
+            t_ref = otvec
+
+            t_ref = t_ref.T  # * 0.001
+
+            if cls == 10 or cls == 11:
+                err_add = adi(R_ref, t_ref, R_gt, t_gt, model_vsd["pts"])
+            else:
+                err_add = add(R_ref, t_ref, R_gt, t_gt, model_vsd["pts"])
+
+            if err_add < model_dia[true_cat] * 0.1:
+                truePoses_ref[int(true_cat)] += 1
+
+            print('error after refinement: ', err_add, 'threshold', model_dia[cls] * 0.1)
+
+            eDbox = R_ref.dot(ori_points.T).T
+            # eDbox = eDbox + np.repeat(t_est[:, np.newaxis], 8, axis=1).T
+            eDbox = eDbox + np.repeat(t_ref, 8, axis=0)
+            est3D = toPix_array(eDbox)
+            eDbox = np.reshape(est3D, (16))
+            pose = eDbox.astype(np.uint16)
+
+            colEst = colEst = (0, 159, 255)
+
+            image_raw = cv2.line(image_raw, tuple(pose[0:2].ravel()), tuple(pose[2:4].ravel()), colEst, 2)
+            image_raw = cv2.line(image_raw, tuple(pose[2:4].ravel()), tuple(pose[4:6].ravel()), colEst, 2)
+            image_raw = cv2.line(image_raw, tuple(pose[4:6].ravel()), tuple(pose[6:8].ravel()), colEst, 2)
+            image_raw = cv2.line(image_raw, tuple(pose[6:8].ravel()), tuple(pose[0:2].ravel()), colEst, 2)
+            image_raw = cv2.line(image_raw, tuple(pose[0:2].ravel()), tuple(pose[8:10].ravel()), colEst, 2)
+            image_raw = cv2.line(image_raw, tuple(pose[2:4].ravel()), tuple(pose[10:12].ravel()), colEst, 2)
+            image_raw = cv2.line(image_raw, tuple(pose[4:6].ravel()), tuple(pose[12:14].ravel()), colEst, 2)
+            image_raw = cv2.line(image_raw, tuple(pose[6:8].ravel()), tuple(pose[14:16].ravel()), colEst, 2)
+            image_raw = cv2.line(image_raw, tuple(pose[8:10].ravel()), tuple(pose[10:12].ravel()), colEst,
+                                 2)
+            image_raw = cv2.line(image_raw, tuple(pose[10:12].ravel()), tuple(pose[12:14].ravel()), colEst,
+                                 2)
+            image_raw = cv2.line(image_raw, tuple(pose[12:14].ravel()), tuple(pose[14:16].ravel()), colEst,
+                                 2)
+            image_raw = cv2.line(image_raw, tuple(pose[14:16].ravel()), tuple(pose[8:10].ravel()), colEst,
+                                 2)
+            # refinement end
+            ################
+
+
+
+
+
+
+
             hyp_mask = np.zeros((640, 480), dtype=np.float32)
             for idx in range(k_hyp):
                 hyp_mask[int(est_points[idx, 0, 0]), int(est_points[idx, 0, 1])] += 1
@@ -638,32 +706,38 @@ def evaluate_linemod(generator, model, threshold=0.05):
             image_crop = cv2.resize(image_crop, None, fx=2, fy=2)
             '''
 
-            name = '/home/stefan/RGBDPose_viz/detection_LM.jpg'
-            cv2.imwrite(name, image_raw)
-            print('break')
+            #name = '/home/stefan/RGBDPose_viz/detection_LM.jpg'
+            #cv2.imwrite(name, image_raw)
+            #print('break')
 
     recall = np.zeros((16), dtype=np.float32)
+    recall_ref = np.zeros((16), dtype=np.float32)
     precision = np.zeros((16), dtype=np.float32)
     detections = np.zeros((16), dtype=np.float32)
     for i in range(1, (allPoses.shape[0])):
         recall[i] = truePoses[i] / allPoses[i]
+        recall_ref[i] = truePoses_ref[i] / allPoses[i]
         precision[i] = truePoses[i] / (truePoses[i] + falsePoses[i])
         detections[i] = trueDets[i] / allPoses[i]
 
         if np.isnan(recall[i]):
             recall[i] = 0.0
+            recall_ref[i] = 0.0
         if np.isnan(precision[i]):
             precision[i] = 0.0
 
         print('CLS: ', i)
         print('true detections: ', detections[i])
         print('recall: ', recall[i])
+        print('recall_ref: ', recall_ref[i])
         print('precision: ', precision[i])
 
     recall_all = np.sum(recall[1:]) / 13.0
+    recall_ref_all = np.sum(recall_ref[1:]) / 13.0
     precision_all = np.sum(precision[1:]) / 13.0
     detections_all = np.sum(detections[1:]) / 13.0
     print('ALL: ')
     print('true detections: ', detections_all)
     print('recall: ', recall_all)
+    print('recall_ref: ', recall_ref_all)
     print('precision: ', precision_all)
