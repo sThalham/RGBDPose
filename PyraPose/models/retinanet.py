@@ -131,6 +131,39 @@ def default_3Dregression_model(num_values, num_anchors, pyramid_feature_size=256
     return keras.models.Model(inputs=inputs, outputs=outputs) #, name=name)
 
 
+def default_3Dregression_model(num_values, num_anchors, pyramid_feature_size=256, regression_feature_size=512, name='3Dregression_submodel'):
+    options = {
+        'kernel_size'        : 3,
+        'strides'            : 1,
+        'padding'            : 'same',
+        'kernel_initializer' : keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
+        'bias_initializer'   : 'zeros',
+        'kernel_regularizer' : keras.regularizers.l2(0.001),
+    }
+
+    if keras.backend.image_data_format() == 'channels_first':
+        inputs  = keras.layers.Input(shape=(pyramid_feature_size, None, None))
+    else:
+        inputs  = keras.layers.Input(shape=(None, None, pyramid_feature_size))
+
+    outputs = inputs
+    for i in range(4):
+        outputs = keras.layers.Conv2D(
+        #outputs = keras.layers.SeparableConv2D(
+            filters=regression_feature_size,
+            activation='relu',
+            #name='pyramid_regression3D_{}'.format(i),
+            **options
+        )(outputs)
+
+    outputs = keras.layers.Conv2D(num_anchors * num_values, **options)(outputs) #, name='pyramid_regression3D'
+    if keras.backend.image_data_format() == 'channels_first':
+        outputs = keras.layers.Permute((2, 3, 1))(outputs) # , name='pyramid_regression3D_permute'
+    outputs = keras.layers.Reshape((-1, num_values))(outputs) # , name='pyramid_regression3D_reshape'
+
+    return keras.models.Model(inputs=inputs, outputs=outputs) #, name=name)
+
+
 def __create_pyramid_features(C3, C4, C5, feature_size=256):
     P5 = keras.layers.Conv2D(feature_size, kernel_size=1, strides=1, padding='same')(C5)
     P5_upsampled = layers.UpsampleLike()([P5, C4])
