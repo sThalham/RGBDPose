@@ -131,7 +131,7 @@ def default_3Dregression_model(num_values, num_anchors, pyramid_feature_size=256
     return keras.models.Model(inputs=inputs, outputs=outputs) #, name=name)
 
 
-def default_3Dregression_model(num_values, num_anchors, pyramid_feature_size=256, regression_feature_size=512, name='3Dregression_submodel'):
+def default_cor2rot_model(num_classes, num_values, regression_feature_size=256, name='poses'):
     options = {
         'kernel_size'        : 3,
         'strides'            : 1,
@@ -141,27 +141,34 @@ def default_3Dregression_model(num_values, num_anchors, pyramid_feature_size=256
         'kernel_regularizer' : keras.regularizers.l2(0.001),
     }
 
+    print('num_classes: ', num_classes)
+    print('num_values: ', num_values)
+
     if keras.backend.image_data_format() == 'channels_first':
-        inputs  = keras.layers.Input(shape=(pyramid_feature_size, None, None))
+        inputs  = keras.layers.Input(shape=(num_values, None))
     else:
-        inputs  = keras.layers.Input(shape=(None, None, pyramid_feature_size))
+        inputs  = keras.layers.Input(shape=(None, num_values))
+
+    print('inputs: ', inputs)
 
     outputs = inputs
-    for i in range(4):
-        outputs = keras.layers.Conv2D(
-        #outputs = keras.layers.SeparableConv2D(
+    for i in range(3):
+        outputs = keras.layers.Conv1D(
             filters=regression_feature_size,
             activation='relu',
-            #name='pyramid_regression3D_{}'.format(i),
             **options
         )(outputs)
 
-    outputs = keras.layers.Conv2D(num_anchors * num_values, **options)(outputs) #, name='pyramid_regression3D'
-    if keras.backend.image_data_format() == 'channels_first':
-        outputs = keras.layers.Permute((2, 3, 1))(outputs) # , name='pyramid_regression3D_permute'
-    outputs = keras.layers.Reshape((-1, num_values))(outputs) # , name='pyramid_regression3D_reshape'
+    print('outputs: ', outputs)
 
-    return keras.models.Model(inputs=inputs, outputs=outputs) #, name=name)
+    outputs = keras.layers.Conv1D(num_classes * 4, **options)(outputs)
+    if keras.backend.image_data_format() == 'channels_first':
+        outputs = keras.layers.Permute((2, 3, 1))(outputs)
+    print('outputs: ', outputs)
+    outputs = keras.layers.Reshape((-1, 4))(outputs)
+    print('outputs: ', outputs)
+
+    return keras.models.Model(inputs=inputs, outputs=outputs, name=name)
 
 
 def __create_pyramid_features(C3, C4, C5, feature_size=256):
@@ -307,29 +314,22 @@ def retinanet(
     if submodels is None:
 
         submodels = default_submodels(num_classes, num_anchors)
-        #submodels_2 = default_submodels_2(num_classes, num_anchors)
 
-    #mask_head = default_mask_decoder(num_classes=num_classes, num_anchors=num_anchors)
+    rot_head = default_cor2rot_model(num_classes=num_classes, num_values=16)
     mask_head = default_mask_model(num_classes=num_classes)
 
     b1, b2, b3 = backbone_layers_rgb
     b4, b5, b6 = backbone_layers_dep
 
-    # feature fusion
-    #C3 = keras.layers.Add()([b1, b4])
-    #C4 = keras.layers.Add()([b2, b5])
-    #C5 = keras.layers.Add()([b3, b6])
-
-    #P3 = keras.layers.Conv2D(256, kernel_size=3, strides=1, padding='same')(C3)
-    #P4 = keras.layers.Conv2D(256, kernel_size=3, strides=1, padding='same')(C4)
-    #P5 = keras.layers.Conv2D(256, kernel_size=3, strides=1, padding='same')(C5)
-
-    #features = create_pyramid_features(P3, P4, P5)
     features = create_pyramid_features(b1, b2, b3, b4, b5, b6)
     pyramids = __build_pyramid(submodels, features)
 
+    print(pyramids[0])
+
     masks = mask_head(features[0])
     pyramids.append(masks)
+    poses = rot_head(pyramids[0])
+    pyramids.append(poses)
 
     return keras.models.Model(inputs=inputs, outputs=pyramids, name=name)
 

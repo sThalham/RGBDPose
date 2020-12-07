@@ -106,7 +106,7 @@ def anchor_targets_bbox(
 
     batch_size = len(image_group)
 
-    regression_batch  = np.zeros((batch_size, anchors.shape[0], 4 + 1), dtype=keras.backend.floatx())
+    poses_batch  = np.zeros((batch_size, num_classes, 4 + 1), dtype=keras.backend.floatx())
     labels_batch      = np.zeros((batch_size, anchors.shape[0], num_classes + 1), dtype=keras.backend.floatx())
     regression_3D = np.zeros((batch_size, anchors.shape[0], 16 + 1), dtype=keras.backend.floatx())
     mask_batch = np.zeros((batch_size, 4800, num_classes + 1), dtype=keras.backend.floatx())
@@ -136,8 +136,8 @@ def anchor_targets_bbox(
             labels_batch[index, ignore_indices, -1]       = -1
             labels_batch[index, positive_indices, -1]     = 1
 
-            regression_batch[index, ignore_indices, -1]   = -1
-            regression_batch[index, positive_indices, -1] = 1
+            #regression_batch[index, ignore_indices, -1]   = -1
+            #regression_batch[index, positive_indices, -1] = 1
 
             regression_3D[index, ignore_indices, -1] = -1
             regression_3D[index, positive_indices, -1] = 1
@@ -145,7 +145,7 @@ def anchor_targets_bbox(
             # compute target class labels
             labels_batch[index, positive_indices, annotations['labels'][argmax_overlaps_inds[positive_indices]].astype(int)] = 1
 
-            regression_batch[index, :, :-1] = bbox_transform(anchors, annotations['bboxes'][argmax_overlaps_inds, :])
+            #regression_batch[index, :, :-1] = bbox_transform(anchors, annotations['bboxes'][argmax_overlaps_inds, :])
 
             calculated_boxes = np.empty((0, 16))
             for idx, pose in enumerate(annotations['poses']):
@@ -164,13 +164,14 @@ def anchor_targets_bbox(
                     mask_batch[index, anchors_spec, cls] = 1
                     mask_batch[index, anchors_spec, -1] = 1
                     #mask_viz[anchors_spec, :] = int(10*cls)
+                    poses_batch[index, cls, -1] = 1
+                    poses_batch[index, cls, :4] = pose[3:]
 
                 rot = tf3d.quaternions.quat2mat(pose[3:])
                 rot = np.asarray(rot, dtype=np.float32)
                 tra = pose[:3]
                 tDbox = rot[:3, :3].dot(annotations['segmentations'][idx].T).T
                 tDbox = tDbox + np.repeat(tra[np.newaxis, 0:3], 8, axis=0)
-
 
                 box3D = toPix_array(tDbox, fx=annotations['cam_params'][idx][0], fy=annotations['cam_params'][idx][1], cx=annotations['cam_params'][idx][2], cy=annotations['cam_params'][idx][3])
                 box3D = np.reshape(box3D, (16))
@@ -248,10 +249,10 @@ def anchor_targets_bbox(
             indices = np.logical_or(anchors_centers[:, 0] >= image[0].shape[1], anchors_centers[:, 1] >= image[0].shape[0])
 
             labels_batch[index, indices, -1]     = -1
-            regression_batch[index, indices, -1] = -1
+            #regression_batch[index, indices, -1] = -1
             regression_3D[index, indices, -1] = -1
 
-    return regression_3D, labels_batch, mask_batch
+    return regression_3D, labels_batch, mask_batch, poses_batch
 
 
 def compute_gt_annotations(
