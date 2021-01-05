@@ -6,6 +6,15 @@ from ..utils.anchors import AnchorParameters
 from . import assert_training_model
 
 
+class l2norm(keras.layers.Layer):
+    def __init__(self):
+        super(l2norm, self).__init__()
+        #self.supports_masking = True
+
+    def call(self, inputs, mask=None):
+        return keras.backend.l2_normalize(inputs, axis=-1)
+
+
 def default_classification_model(
     num_classes,
     num_anchors,
@@ -141,15 +150,10 @@ def default_cor2rot_model(num_classes, num_values, regression_feature_size=256, 
         'kernel_regularizer' : keras.regularizers.l2(0.001),
     }
 
-    print('num_classes: ', num_classes)
-    print('num_values: ', num_values)
-
     if keras.backend.image_data_format() == 'channels_first':
         inputs  = keras.layers.Input(shape=(num_values, None))
     else:
         inputs  = keras.layers.Input(shape=(None, num_values))
-
-    print('inputs: ', inputs)
 
     outputs = inputs
     for i in range(3):
@@ -159,14 +163,11 @@ def default_cor2rot_model(num_classes, num_values, regression_feature_size=256, 
             **options
         )(outputs)
 
-    print('outputs: ', outputs)
-
     outputs = keras.layers.Conv1D(num_classes * 4, **options)(outputs)
     if keras.backend.image_data_format() == 'channels_first':
         outputs = keras.layers.Permute((2, 3, 1))(outputs)
-    print('outputs: ', outputs)
     outputs = keras.layers.Reshape((-1, 4))(outputs)
-    print('outputs: ', outputs)
+    outputs = l2norm()(outputs)
 
     return keras.models.Model(inputs=inputs, outputs=outputs, name=name)
 
