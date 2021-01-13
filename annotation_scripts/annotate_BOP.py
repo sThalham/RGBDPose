@@ -14,6 +14,7 @@ import copy
 import transforms3d as tf3d
 import time
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 depSca = 1.0
 resX = 640
@@ -179,7 +180,7 @@ if __name__ == "__main__":
     specific_object_set = False
     spec_objs = [5, 8, 9, 10, 21]
 
-    root = "/home/stefan/data/datasets/HB_BOP_val/"  # path to train samples, depth + rgb
+    root = "/home/stefan/data/datasets/lm_BOP_test/"  # path to train samples, depth + rgb
     target = '/home/stefan/data/train_data/hb_RGBD_val/'
 
     if dataset == 'linemod':
