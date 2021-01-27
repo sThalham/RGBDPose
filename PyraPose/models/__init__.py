@@ -30,6 +30,7 @@ class Backbone(object):
             '_orth_l1'         : losses.orthogonal_l1(),
             'RegressBoxes3D'   : layers.RegressBoxes3D(),
             'DenormBoxes3D'   : layers.DenormBoxes3D(),
+            'l2norm'         : retinanet.l2norm,
         }
 
         self.backbone = backbone

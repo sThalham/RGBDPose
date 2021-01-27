@@ -7,8 +7,8 @@ from . import assert_training_model
 
 
 class l2norm(keras.layers.Layer):
-    def __init__(self):
-        super(l2norm, self).__init__()
+    def __init__(self, **kwargs):
+        super(l2norm, self).__init__(**kwargs)
         #self.supports_masking = True
 
     def call(self, inputs, mask=None):
@@ -362,10 +362,10 @@ def retinanet_bbox(
     regression3D = model.outputs[0]
     classification = model.outputs[1]
     mask = model.outputs[2]
-    #other = model.outputs[3:]
+    quats = model.outputs[3]
 
     boxes3D = layers.RegressBoxes3D(name='boxes3D')([anchors, regression3D])
 
     # construct the model
     #return keras.models.Model(inputs=model.inputs, outputs=detections, name=name)
-    return keras.models.Model(inputs=model.inputs, outputs=[boxes3D, classification, mask], name=name)
+    return keras.models.Model(inputs=model.inputs, outputs=[boxes3D, classification, mask, quats], name=name)
