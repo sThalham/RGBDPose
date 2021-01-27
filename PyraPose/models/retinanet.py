@@ -140,7 +140,7 @@ def default_3Dregression_model(num_values, num_anchors, pyramid_feature_size=256
     return keras.models.Model(inputs=inputs, outputs=outputs) #, name=name)
 
 
-def default_cor2rot_model(num_classes, num_values, regression_feature_size=256, name='poses'):
+def default_cor2rot_model(num_classes, num_values, regression_feature_size=128, name='poses'):
     options = {
         'kernel_size'        : 3,
         'strides'            : 1,
@@ -162,12 +162,16 @@ def default_cor2rot_model(num_classes, num_values, regression_feature_size=256, 
             activation='relu',
             **options
         )(outputs)
+    print('feature group: ', outputs)
 
-    outputs = keras.layers.Conv1D(num_classes * 4, **options)(outputs)
+    outputs = keras.layers.Conv1D(4, **options)(outputs)
+    print('1D conv: ', outputs)
     if keras.backend.image_data_format() == 'channels_first':
         outputs = keras.layers.Permute((2, 3, 1))(outputs)
     outputs = keras.layers.Reshape((-1, 4))(outputs)
+    print('reshape: ', outputs)
     outputs = l2norm()(outputs)
+    print('after norm: ', outputs)
 
     return keras.models.Model(inputs=inputs, outputs=outputs, name=name)
 
@@ -325,11 +329,10 @@ def retinanet(
     features = create_pyramid_features(b1, b2, b3, b4, b5, b6)
     pyramids = __build_pyramid(submodels, features)
 
-    print(pyramids[0])
-
     masks = mask_head(features[0])
     pyramids.append(masks)
     poses = rot_head(pyramids[0])
+    print('poses: ', poses)
     pyramids.append(poses)
 
     return keras.models.Model(inputs=inputs, outputs=pyramids, name=name)
